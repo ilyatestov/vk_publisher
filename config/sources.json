@@ -1,0 +1,39 @@
+{
+  "rss": [
+    {
+      "url": "https://dtf.ru/rss",
+      "topic": "игры и развлечения",
+      "enabled": true,
+      "priority": 1
+    },
+    {
+      "url": "https://vc.ru/rss",
+      "topic": "бизнес и технологии",
+      "enabled": true,
+      "priority": 1
+    },
+    {
+      "url": "https://habr.com/ru/rss/",
+      "topic": "IT и программирование",
+      "enabled": true,
+      "priority": 2
+    }
+  ],
+  "vk_groups": [
+    {
+      "group_id": 123456,
+      "topic": "технологии",
+      "enabled": false,
+      "priority": 3
+    }
+  ],
+  "websites": [
+    {
+      "url": "https://example.com/news",
+      "selector": ".article-title",
+      "topic": "новости",
+      "enabled": false,
+      "priority": 3
+    }
+  ]
+}
