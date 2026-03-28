@@ -1,35 +1,56 @@
-FROM python:3.10-slim
+# ============================================
+# VK Publisher - Multi-stage Dockerfile
+# ============================================
+
+# Stage 1: Builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Установка системных зависимостей
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
-    sqlite3 \
-    curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Копирование requirements.txt
-COPY requirements.txt .
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
 
-# Установка Python зависимостей
+# Copy and install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование исходного кода
+# Stage 2: Production
+FROM python:3.11-slim AS production
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+WORKDIR /app
+
+# Copy installed packages from builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
 COPY src/ ./src/
 COPY config/ ./config/
 COPY scripts/ ./scripts/
 
-# Создание директорий для данных и логов
-RUN mkdir -p /app/data /app/logs
+# Create directories for logs and data
+RUN mkdir -p /app/logs /app/data && \
+    chown -R appuser:appuser /app
 
-# Проверка готовности (не критично если упадёт)
-RUN python scripts/test_setup.py || true
+# Switch to non-root user
+USER appuser
 
-# Переменные окружения по умолчанию
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
+# Expose port
+EXPOSE 8000
 
-# Запуск основного скрипта
-CMD ["python", "src/main.py"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+# Default command
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

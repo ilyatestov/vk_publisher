@@ -1,99 +1,132 @@
 version: '3.8'
 
 services:
-  # Основной сервис автопостинга
-  vk-autoposter:
-    build: .
-    container_name: vk-autoposter
-    restart: unless-stopped
-    env_file:
-      - .env
+  # ============================================
+  # VK Publisher Application
+  # ============================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE__URL=postgresql+asyncpg://postgres:password@db:5432/vk_publisher
+      - VK__ACCESS_TOKEN=${VK_ACCESS_TOKEN}
+      - VK__GROUP_ID=${VK_GROUP_ID}
+      - TELEGRAM__TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM__MODERATOR_CHAT_ID=${ADMIN_TELEGRAM_ID}
+      - OLLAMA__BASE_URL=http://ollama:11434
+      - SECURITY__ENCRYPTION_KEY=${ENCRYPTION_KEY:-change_this_key_32_chars!}
     volumes:
-      - ./data:/app/data
       - ./logs:/app/logs
-      - ./config:/app/config
-    networks:
-      - autoposter-network
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
     depends_on:
-      ollama:
+      db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "scripts/health_check.py"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - vk_publisher_net
 
-  # Локальная LLM для рерайта (Ollama)
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: vk_publisher
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vk_publisher_net
+
+  # ============================================
+  # Redis (for caching and queues)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - vk_publisher_net
+
+  # ============================================
+  # Prometheus (metrics collection)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - vk_publisher_net
+
+  # ============================================
+  # Grafana (visualization)
+  # ============================================
+  grafana:
+    image: grafana/grafana-enterprise
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    restart: unless-stopped
+    networks:
+      - vk_publisher_net
+    depends_on:
+      - prometheus
+
+  # ============================================
+  # Ollama (local LLM server) - Optional
+  # ============================================
   ollama:
     image: ollama/ollama:latest
-    container_name: ollama
-    restart: unless-stopped
-    volumes:
-      - ollama-data:/root/.ollama
     ports:
       - "11434:11434"
-    networks:
-      - autoposter-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    # Раскомментировать для GPU поддержки
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-    # Для ограничения памяти:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       memory: 2G
-
-  # Telegram бот для модерации (опционально)
-  telegram-bot:
-    build: .
-    container_name: telegram-moderator
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - MODE=telegram_bot
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-    networks:
-      - autoposter-network
-    depends_on:
-      - vk-autoposter
-    profiles:
-      - with-telegram
-
-  # n8n для визуальных workflow (опционально)
-  n8n:
-    image: n8n/n8n:latest
-    container_name: n8n
+      - ollama_data:/root/.ollama
     restart: unless-stopped
-    ports:
-      - "5678:5678"
-    env_file:
-      - .env.n8n
-    volumes:
-      - n8n-data:/home/node/.n8n
     networks:
-      - autoposter-network
+      - vk_publisher_net
     profiles:
-      - with-n8n
-
-networks:
-  autoposter-network:
-    driver: bridge
+      - with-ollama
 
 volumes:
-  ollama-data:
-  n8n-data:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  ollama_data:
+
+networks:
+  vk_publisher_net:
+    driver: bridge
