@@ -1,0 +1,19 @@
+{
+  "telegram": {
+    "channel": "your_channel",
+    "enabled": true
+  },
+  "youtube": {
+    "channel": "your_channel",
+    "enabled": true
+  },
+  "dzen": {
+    "channel": "your_channel",
+    "enabled": false
+  },
+  "hashtags": [
+    "#новости",
+    "#технологии",
+    "#IT"
+  ]
+}

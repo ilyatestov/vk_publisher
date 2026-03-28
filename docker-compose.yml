@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Основной сервис автопостинга
+  vk-autoposter:
+    build: .
+    container_name: vk-autoposter
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    networks:
+      - autoposter-network
+    depends_on:
+      - ollama
+
+  # Локальная LLM для рерайта (Ollama)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - autoposter-network
+    # Раскомментировать для GPU поддержки
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # Telegram бот для модерации (опционально)
+  telegram-bot:
+    build: .
+    container_name: telegram-moderator
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - MODE=telegram_bot
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - autoposter-network
+    depends_on:
+      - vk-autoposter
+
+  # n8n для визуальных workflow (опционально)
+  n8n:
+    image: n8n/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    env_file:
+      - .env.n8n
+    volumes:
+      - n8n-data:/home/node/.n8n
+    networks:
+      - autoposter-network
+    profiles:
+      - with-n8n
+
+networks:
+  autoposter-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
+  n8n-data:
