@@ -7,32 +7,127 @@
 - **Clean Architecture** - разделение на domain, infrastructure, application слои
 - **Конвейерная обработка** - 4 воркера через asyncio.Queue (fetcher, processor, moderation, publisher)
 - **REST API** - FastAPI с автоматической документацией (Swagger/OpenAPI)
+- **Web UI** - Удобный веб-интерфейс на Gradio для управления без знания API
 - **Метрики Prometheus** - мониторинг производительности и ошибок
 - **Telegram модерация** - aiogram 3.x для одобрения постов перед публикацией
 - **ИИ-рерайт** - Ollama (локальная LLM) для переписывания контента
 - **База данных** - SQLAlchemy + asyncpg (PostgreSQL) / aiosqlite (SQLite)
 - **Docker** - multi-stage сборка, docker-compose для production
 
+---
+
+## 📚 ПОЛНЫЕ ИНСТРУКЦИИ
+
+### 🔑 Получение API токенов (ОБЯЗАТЕЛЬНО ПРОЧИТАТЬ!)
+Подробная инструкция по получению всех необходимых токенов:
+👉 **[docs/VK_API_SETUP.md](docs/VK_API_SETUP.md)**
+
+Здесь пошагово описано:
+- Как создать приложение ВКонтакте
+- Как получить токен доступа к API
+- Как узнать ID группы
+- Как создать Telegram бота для модерации
+- Как узнать свой Telegram ID
+
+### 🪟 Установка на Windows
+👉 **[docs/WINDOWS_INSTALL.md](docs/WINDOWS_INSTALL.md)**
+
+Пошаговая инструкция для пользователей Windows:
+- Установка Python и Git
+- Настройка виртуального окружения
+- Запуск приложения
+- Возможные проблемы и решения
+
+### 🐧 Установка на Ubuntu / VPS
+👉 **[docs/UBUNTU_VPS_INSTALL.md](docs/UBUNTU_VPS_INSTALL.md)**
+
+Инструкция для серверов под управлением Ubuntu:
+- Подготовка сервера
+- Настройка systemd для автозапуска
+- Настройка firewall и Nginx
+- SSL сертификаты Let's Encrypt
+
+### 🌐 Web UI интерфейс
+👉 **[docs/WEB_UI_GUIDE.md](docs/WEB_UI_GUIDE.md)**
+
+Руководство по использованию веб-интерфейса:
+- Запуск и настройка
+- Управление публикациями через браузер
+- Настройка удаленного доступа
+- Безопасность и аутентификация
+
+---
+
+## 🎯 БЫСТРЫЙ СТАРТ
+
+### 1. Получите токены API
+Следуйте инструкции: **[docs/VK_API_SETUP.md](docs/VK_API_SETUP.md)**
+
+Вам понадобятся:
+- Токен VK API
+- ID группы ВКонтакте
+- Токен Telegram бота
+- Ваш Telegram ID
+
+### 2. Клонируйте репозиторий
+```bash
+git clone https://github.com/ilyatestov/vk_publisher.git
+cd vk_publisher
+```
+
+### 3. Создайте виртуальное окружение
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# или
+.venv\Scripts\activate  # Windows
+```
+
+### 4. Установите зависимости
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Настройте конфигурацию
+```bash
+cp .env.example .env
+```
+
+Откройте `.env` и заполните обязательные поля:
+```bash
+VK__ACCESS_TOKEN=ваш_токен_vk
+VK__GROUP_ID=id_вашей_группы
+TELEGRAM__TOKEN=токен_telegram_бота
+TELEGRAM__MODERATOR_CHAT_ID=ваш_id_telegram
+```
+
+### 6. Запустите приложение
+```bash
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 7. Откройте интерфейсы
+- **Swagger UI (API):** http://localhost:8000/docs
+- **Web UI (Gradio):** запустите `python src/web_ui.py` и откройте http://localhost:7860
+
+---
+
 ## 📁 Структура проекта
 
 ```
 vk_publisher/
+├── docs/                  # Полные инструкции по установке и настройке
+│   ├── VK_API_SETUP.md       # 🔑 Как получить токены API
+│   ├── WINDOWS_INSTALL.md    # 🪟 Установка на Windows
+│   ├── UBUNTU_VPS_INSTALL.md # 🐧 Установка на Ubuntu/VPS
+│   └── WEB_UI_GUIDE.md       # 🌐 Руководство по Web UI
 ├── src/
 │   ├── core/              # Конфигурация, логирование, исключения
-│   │   ├── config.py
-│   │   ├── logging.py
-│   │   └── exceptions.py
 │   ├── domain/            # Бизнес-сущности и интерфейсы
-│   │   ├── entities.py
-│   │   └── interfaces.py
 │   ├── infrastructure/    # Реализации интерфейсов
-│   │   ├── vk_api_client.py
-│   │   ├── ollama_processor.py
-│   │   ├── database.py
-│   │   └── telegram_bot.py
 │   ├── workers/           # Конвейерные воркеры
-│   │   └── pipeline.py
 │   ├── presentation/      # REST API endpoints
+│   ├── web_ui.py          # 🌐 Web интерфейс на Gradio
 │   └── main.py            # Точка входа
 ├── tests/                 # Unit и integration тесты
 ├── docker/                # Docker конфигурации
@@ -40,6 +135,7 @@ vk_publisher/
 ├── docker-compose.yml     # Docker Compose для production
 └── requirements.txt       # Python зависимости
 ```
+
 
 ## 🔧 Установка
 
