@@ -3,12 +3,14 @@
 """
 import asyncio
 import json
+import sys
+from pathlib import Path
 from datetime import datetime
 from loguru import logger
-import sys
 
-# Добавляем src в путь импорта
-sys.path.insert(0, '/app/src')
+# Добавляем корневую директорию в путь импорта
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
 
 from src.database import Database
 from src.vk_api_client import VKAPIClient
