@@ -1,229 +1,171 @@
 """
-Основной файл запуска системы автопостинга ВКонтакте
+VK Publisher v2.0 - Main Entry Point
+
+Асинхронное приложение для автопостинга ВКонтакте с:
+- Clean Architecture
+- Конвейерной обработкой через asyncio.Queue
+- REST API на FastAPI
+- Метриками Prometheus
+- Telegram модерацией
 """
 import asyncio
-import json
-import sys
-from pathlib import Path
-from datetime import datetime
-from loguru import logger
+import signal
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
-# Добавляем корневую директорию в путь импорта
-BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(BASE_DIR))
+from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
-from src.database import Database
-from src.vk_api_client import VKAPIClient
-from src.content_fetcher import ContentFetcher
-from src.processor import AIRewriter, Deduplicator
-from src.publisher import VKPublisher, FooterGenerator
-from src import settings
+from .core.logging import log
+from .core.config import settings
+from .domain.entities import VKAccount, ContentSource
+from .infrastructure.database import DatabaseStorage
+from .infrastructure.vk_api_client import VKClient
+from .infrastructure.ollama_processor import OllamaProcessor
+from .infrastructure.telegram_bot import TelegramModeratorBot
+from .workers.pipeline import PipelineWorker
 
 
-async def main():
-    """Основная функция запуска системы"""
+# Глобальные переменные для управления жизненным циклом
+pipeline_worker: PipelineWorker = None
+pipeline_task: asyncio.Task = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+    """Управление жизненным циклом приложения"""
+    global pipeline_worker, pipeline_task
     
-    # Настройка логирования
-    logger.add(
-        settings.log_file,
-        rotation="10 MB",
-        retention="7 days",
-        level=settings.log_level,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"
+    log.info("=" * 60)
+    log.info("Инициализация VK Publisher v2.0...")
+    log.info("=" * 60)
+    
+    # Инициализация базы данных
+    storage = DatabaseStorage(settings.database.url)
+    await storage.initialize()
+    
+    # Создание компонентов
+    async with OllamaProcessor() as processor, VKClient() as publisher:
+        # Проверка доступности модели ИИ
+        if await processor.check_model_availability():
+            log.success(f"ИИ модель {settings.ollama.model_name} доступна")
+        else:
+            log.warning(f"ИИ модель {settings.ollama.model_name} недоступна")
+        
+        # Инициализация Telegram бота для модерации
+        moderator = TelegramModeratorBot()
+        
+        # Создание аккаунта по умолчанию
+        default_account = VKAccount(
+            id=settings.vk.group_id,
+            name="Default Group",
+            access_token=settings.vk.access_token,
+            daily_quota=settings.scheduler.max_daily_posts
+        )
+        
+        # Создание конвейера
+        pipeline_worker = PipelineWorker(
+            storage=storage,
+            processor=processor,
+            publisher=publisher,
+            moderator=moderator
+        )
+        pipeline_worker.set_default_account(default_account)
+        
+        # Запуск воркеров в фоне
+        pipeline_task = asyncio.create_task(
+            pipeline_worker.start_workers(),
+            name="pipeline"
+        )
+        
+        log.info("Все компоненты инициализированы")
+        log.info("=" * 60)
+        
+        yield
+        
+        # Завершение работы
+        log.info("=" * 60)
+        log.info("Завершение работы приложения...")
+        
+        if pipeline_worker:
+            await pipeline_worker.shutdown()
+        
+        if pipeline_task and not pipeline_task.done():
+            pipeline_task.cancel()
+            try:
+                await pipeline_task
+            except asyncio.CancelledError:
+                log.info("Конвейер остановлен")
+        
+        await storage.close()
+        log.info("Приложение остановлено")
+        log.info("=" * 60)
+
+
+# Создание FastAPI приложения
+app = FastAPI(
+    title="VK Publisher API",
+    description="REST API для системы автопостинга ВКонтакте",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+# Добавление метрик Prometheus
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint для Docker/K8s
+    
+    Returns:
+        Статус здоровья приложения
+    """
+    return {
+        "status": "healthy",
+        "timestamp": asyncio.get_event_loop().time()
+    }
+
+
+@app.get("/")
+async def root():
+    """Корневой endpoint с информацией о приложении"""
+    return {
+        "name": "VK Publisher",
+        "version": "2.0.0",
+        "description": "Система автопостинга ВКонтакте с ИИ-обработкой",
+        "docs": "/docs",
+        "health": "/health",
+        "metrics": "/metrics"
+    }
+
+
+@app.get("/api/v1/stats")
+async def get_statistics():
+    """Получение статистики по постам"""
+    from .infrastructure.database import DatabaseStorage
+    storage = DatabaseStorage(settings.database.url)
+    try:
+        await storage.initialize()
+        stats = await storage.get_statistics()
+        return {"statistics": stats}
+    finally:
+        await storage.close()
+
+
+def main():
+    """Точка входа для запуска через uvicorn"""
+    import uvicorn
+    
+    uvicorn.run(
+        "src.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,
+        log_level="info"
     )
-    
-    logger.info("=" * 60)
-    logger.info("Запуск системы автопостинга ВКонтакте")
-    logger.info("=" * 60)
-    
-    # Инициализация компонентов
-    logger.info("Инициализация компонентов...")
-    
-    # База данных
-    db = Database(settings.database_path)
-    await db.initialize()
-    
-    # VK API клиент
-    vk_client = VKAPIClient(
-        access_token=settings.vk_access_token,
-        group_id=settings.vk_group_id,
-        api_version=settings.vk_api_version
-    )
-    
-    # Сборщик контента
-    content_fetcher = ContentFetcher(
-        vk_api_client=vk_client,
-        proxy=settings.proxy_list[0] if settings.proxy_list else None
-    )
-    
-    # ИИ-рерайтер
-    ai_rewriter = AIRewriter(
-        base_url=settings.ollama_base_url,
-        model=settings.llm_model
-    )
-    
-    # Дедупликатор
-    deduplicator = Deduplicator(database=db)
-    
-    # Публикатор
-    publisher = VKPublisher(vk_api_client=vk_client, database=db)
-    
-    # Генератор футеров
-    footer_generator = FooterGenerator(
-        social_links_config_path=settings.social_links_config_path
-    )
-    
-    # Проверка доступности модели ИИ
-    logger.info("Проверка доступности ИИ модели...")
-    if await ai_rewriter.check_model_availability():
-        logger.success("ИИ модель доступна")
-    else:
-        logger.warning("ИИ модель недоступна. Рерайт будет пропущен.")
-    
-    # Загрузка конфигурации источников
-    logger.info("Загрузка конфигурации источников...")
-    sources_config = content_fetcher.load_sources(settings.sources_config_path)
-    
-    # Основной цикл
-    posts_published_today = 0
-    
-    while True:
-        try:
-            logger.info("\n" + "=" * 60)
-            logger.info(f"Начало цикла сбора контента: {datetime.now()}")
-            logger.info("=" * 60)
-            
-            # Проверка лимита постов в день
-            if posts_published_today >= settings.max_posts_per_day:
-                logger.info(f"Достигнут лимит постов на сегодня: {posts_published_today}")
-                await asyncio.sleep(3600)  # Ждём час
-                posts_published_today = 0  # Сброс через час (в реальном приложении лучше по дате)
-                continue
-            
-            # Сбор контента из всех источников
-            logger.info("Сбор контента из источников...")
-            all_content = await content_fetcher.fetch_all(sources_config)
-            logger.info(f"Собрано {len(all_content)} материалов")
-            
-            if not all_content:
-                logger.info("Нет нового контента. Ожидание...")
-                await asyncio.sleep(settings.post_interval_minutes * 60)
-                continue
-            
-            # Фильтрация дубликатов
-            logger.info("Фильтрация дубликатов...")
-            unique_content = await deduplicator.filter_duplicates(all_content)
-            logger.info(f"Осталось {len(unique_content)} уникальных материалов")
-            
-            if not unique_content:
-                logger.info("Все материалы - дубликаты. Ожидание...")
-                await asyncio.sleep(settings.post_interval_minutes * 60)
-                continue
-            
-            # Группировка по темам
-            grouped_content = deduplicator.group_similar_articles(unique_content)
-            
-            # Обработка каждой группы
-            for topic, articles in grouped_content.items():
-                if posts_published_today >= settings.max_posts_per_day:
-                    break
-                
-                logger.info(f"\nОбработка темы: {topic}")
-                
-                # Если статей несколько - объединяем
-                if len(articles) > 1:
-                    merged = await deduplicator.merge_articles(articles)
-                    
-                    # ИИ-рерайт объединённого контента
-                    if merged.get('needs_rewrite'):
-                        logger.info("Генерация саммари через ИИ...")
-                        summary = await ai_rewriter.generate_summary(merged.get('articles', []))
-                        
-                        if summary:
-                            content_text = summary
-                        else:
-                            # Если ИИ не сработал, берём первую статью
-                            content_text = articles[0].get('content', '')
-                    else:
-                        content_text = merged.get('content', '')
-                    
-                    sources = merged.get('sources', [])
-                    image_url = merged.get('image_url')
-                    title = merged.get('title', '')
-                else:
-                    # Одна статья - просто рерайт
-                    article = articles[0]
-                    
-                    logger.info("Рерайт через ИИ...")
-                    rewritten = await ai_rewriter.rewrite(
-                        content=article.get('content', ''),
-                        title=article.get('title', '')
-                    )
-                    
-                    content_text = rewritten if rewritten else article.get('content', '')
-                    sources = [{
-                        'title': article.get('title', ''),
-                        'url': article.get('link', '')
-                    }]
-                    image_url = article.get('image_url')
-                    title = article.get('title', '')
-                
-                # Генерация полного поста с футером
-                full_post = footer_generator.create_full_post(
-                    content=content_text,
-                    sources=sources
-                )
-                
-                # Подготовка данных поста
-                post_data = {
-                    'text': full_post,
-                    'title': title,
-                    'source': articles[0].get('source', 'unknown'),
-                    'content_hash': articles[0].get('content_hash', ''),
-                    'image_url': image_url,
-                    'sources': sources
-                }
-                
-                # Публикация
-                logger.info("Публикация поста...")
-                vk_post_id = await publisher.publish_post(
-                    post_data=post_data,
-                    enable_preview=settings.enable_preview
-                )
-                
-                if vk_post_id:
-                    posts_published_today += 1
-                    logger.success(f"Пост опубликован! Всего сегодня: {posts_published_today}/{settings.max_posts_per_day}")
-                    
-                    # Добавление хеша в базу
-                    await db.add_content_hash(
-                        content_hash=post_data['content_hash'],
-                        title=title,
-                        source=post_data['source'],
-                        post_id=vk_post_id
-                    )
-                else:
-                    logger.error("Не удалось опубликовать пост")
-            
-            # Статистика
-            stats = await db.get_statistics()
-            logger.info(f"\nСтатистика БД: {stats}")
-            
-            # Ожидание следующего цикла
-            next_run = datetime.now().timestamp() + (settings.post_interval_minutes * 60)
-            logger.info(f"\nСледующий запуск в: {datetime.fromtimestamp(next_run)}")
-            await asyncio.sleep(settings.post_interval_minutes * 60)
-            
-        except KeyboardInterrupt:
-            logger.info("Остановка системы по сигналу пользователя")
-            break
-        except Exception as e:
-            logger.error(f"Ошибка в основном цикле: {e}")
-            await asyncio.sleep(60)  # Ждём минуту перед перезапуском
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Система остановлена")
+    main()
