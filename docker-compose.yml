@@ -15,7 +15,14 @@ services:
     networks:
       - autoposter-network
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "scripts/health_check.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Локальная LLM для рерайта (Ollama)
   ollama:
@@ -28,6 +35,12 @@ services:
       - "11434:11434"
     networks:
       - autoposter-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     # Раскомментировать для GPU поддержки
     # deploy:
     #   resources:
@@ -36,6 +49,11 @@ services:
     #         - driver: nvidia
     #           count: all
     #           capabilities: [gpu]
+    # Для ограничения памяти:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       memory: 2G
 
   # Telegram бот для модерации (опционально)
   telegram-bot:
@@ -53,6 +71,8 @@ services:
       - autoposter-network
     depends_on:
       - vk-autoposter
+    profiles:
+      - with-telegram
 
   # n8n для визуальных workflow (опционально)
   n8n:
