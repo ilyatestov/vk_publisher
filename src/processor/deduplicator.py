@@ -34,6 +34,7 @@ class Deduplicator:
 
         unique_content = []
         duplicates_count = 0
+        seen_hashes = set()
 
         
         for item in content_list:
@@ -47,7 +48,7 @@ class Deduplicator:
             # Проверка на дубликат в базе
             is_duplicate = await self.db.check_duplicate(content_hash, days=30)
             
-            if is_duplicate:
+            if is_duplicate or content_hash in seen_hashes:
                 duplicates_count += 1
                 logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
             else:
