@@ -133,6 +133,7 @@ class TestFooterGenerator:
 
         assert 'https://t.me/test_channel' in footer
 
+
     def test_load_config_invalid_path(self):
         """Тест загрузки конфигурации - неверный путь"""
         generator = FooterGenerator(social_links_config_path='/nonexistent/path.json')

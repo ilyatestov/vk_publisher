@@ -238,6 +238,21 @@ class TestVKAPIClient:
         assert result['id'] == 123456
         assert result['name'] == 'Test Group'
 
+    def test_get_group_info_success_list_response(self, vk_client, mock_vk_session):
+        """Тест получения информации о группе при list-ответе VK API"""
+        mock_vk_session.get_api.return_value.groups.getById.return_value = [
+            {
+                'id': 123456,
+                'name': 'Test Group',
+                'screen_name': 'test_group'
+            }
+        ]
+
+        result = vk_client.get_group_info()
+
+        assert result['id'] == 123456
+        assert result['name'] == 'Test Group'
+
     def test_get_group_info_error(self, vk_client, mock_vk_session):
         """Тест ошибки при получении информации о группе"""
         mock_vk_session.get_api.return_value.groups.getById.side_effect = Exception("Group info error")

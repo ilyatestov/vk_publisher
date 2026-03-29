@@ -3,6 +3,7 @@
 """
 import json
 from typing import List, Dict, Any
+from urllib.parse import urlparse
 from loguru import logger
 
 
@@ -39,11 +40,6 @@ class FooterGenerator:
 
     def _normalize_channel(self, channel: str) -> str:
         """Нормализация названия канала/аккаунта"""
-        return channel.strip().replace('https://', '').replace('http://', '').replace('@', '').strip('/')
-
-    def _build_social_url(self, network: str, channel: str) -> str:
-        """Построение URL для социальной сети"""
-        channel = self._normalize_channel(channel)
         templates = {
             'telegram': f"https://t.me/{channel}",
             'youtube': f"https://youtube.com/{channel}",

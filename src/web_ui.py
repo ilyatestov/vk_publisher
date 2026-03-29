@@ -8,7 +8,6 @@ import gradio as gr
 import httpx
 from datetime import datetime
 import json
-from typing import Dict, Any, Tuple, List
 
 
 API_BASE_URL = "http://localhost:8000"
@@ -119,118 +118,6 @@ async def get_social_links_config():
         return f'{{"error": "{str(e)}"}}'
 
 
-async def fetch_social_links_dict() -> Dict[str, Any]:
-    """Получение конфига соцсетей в виде словаря."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{API_BASE_URL}/api/v1/config/social-links", timeout=10)
-        if response.status_code != 200:
-            raise RuntimeError(f"Ошибка загрузки: {response.status_code}")
-        return response.json().get("config", {}) or {}
-
-
-def _network_keys(config: Dict[str, Any]) -> List[str]:
-    return [k for k, v in config.items() if k not in {"hashtags", "call_to_action"} and isinstance(v, dict)]
-
-
-def _hashtags_to_str(config: Dict[str, Any]) -> str:
-    tags = config.get("hashtags", [])
-    if isinstance(tags, list):
-        return ", ".join(tags)
-    return ""
-
-
-def _split_hashtags(raw_tags: str) -> List[str]:
-    return [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
-
-
-def _network_fields(config: Dict[str, Any], selected: str) -> Tuple[str, str, bool]:
-    node = config.get(selected, {}) if isinstance(config, dict) else {}
-    channel = node.get("channel", "") if isinstance(node, dict) else ""
-    label = node.get("label", "") if isinstance(node, dict) else ""
-    enabled = bool(node.get("enabled", False)) if isinstance(node, dict) else False
-    return channel, label, enabled
-
-
-async def load_social_links_form():
-    """Загрузка конфига в форму CRUD."""
-    try:
-        config = await fetch_social_links_dict()
-        keys = _network_keys(config)
-        selected = keys[0] if keys else ""
-        channel, label, enabled = _network_fields(config, selected) if selected else ("", "", False)
-        return (
-            config,
-            gr.update(choices=keys, value=selected),
-            channel,
-            label,
-            enabled,
-            config.get("call_to_action", "🔗 Мы в соцсетях:"),
-            _hashtags_to_str(config),
-            "✅ Конфигурация загружена",
-            json.dumps(config, ensure_ascii=False, indent=2),
-        )
-    except Exception as e:
-        return ({}, gr.update(choices=[], value=""), "", "", False, "", "", f"❌ {e}", "{}")
-
-
-def on_network_change(selected_network: str, config: Dict[str, Any]):
-    """Подстановка полей выбранной соцсети."""
-    channel, label, enabled = _network_fields(config or {}, selected_network)
-    return channel, label, enabled
-
-
-def upsert_network(
-    config: Dict[str, Any],
-    selected_network: str,
-    network_name: str,
-    channel: str,
-    label: str,
-    enabled: bool,
-    call_to_action: str,
-    hashtags_raw: str,
-):
-    """Создать/обновить соцсеть в конфиге."""
-    config = dict(config or {})
-    key = (network_name or selected_network or "").strip().lower()
-    if not key:
-        return config, gr.update(), "❌ Укажите имя соцсети", json.dumps(config, ensure_ascii=False, indent=2)
-
-    config[key] = {
-        "channel": channel.strip(),
-        "enabled": bool(enabled),
-        "label": label.strip() or key.capitalize(),
-    }
-    config["call_to_action"] = call_to_action.strip() or "🔗 Мы в соцсетях:"
-    config["hashtags"] = _split_hashtags(hashtags_raw)
-
-    keys = _network_keys(config)
-    return (
-        config,
-        gr.update(choices=keys, value=key),
-        f"✅ Сеть '{key}' сохранена в локальной форме",
-        json.dumps(config, ensure_ascii=False, indent=2),
-    )
-
-
-def delete_network(config: Dict[str, Any], selected_network: str):
-    """Удаление соцсети из локальной формы."""
-    config = dict(config or {})
-    if not selected_network:
-        return config, gr.update(), "❌ Выберите сеть для удаления", json.dumps(config, ensure_ascii=False, indent=2)
-
-    if selected_network in config:
-        config.pop(selected_network, None)
-
-    keys = _network_keys(config)
-    next_key = keys[0] if keys else ""
-    return (
-        config,
-        gr.update(choices=keys, value=next_key),
-        f"✅ Сеть '{selected_network}' удалена из локальной формы",
-        json.dumps(config, ensure_ascii=False, indent=2),
-    )
-
-
 async def save_social_links_config(config_json: str):
     """Сохранение конфигурации соцсетей через API"""
     if not config_json.strip():
@@ -254,21 +141,6 @@ async def save_social_links_config(config_json: str):
     except Exception as e:
         return f"❌ Ошибка: {str(e)}"
 
-
-async def save_social_links_state(config: Dict[str, Any]):
-    """Сохранить текущий state-конфиг на сервер."""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.put(
-                f"{API_BASE_URL}/api/v1/config/social-links",
-                json=config or {},
-                timeout=10
-            )
-            if response.status_code == 200:
-                return "✅ Конфигурация сохранена на сервер"
-            return f"❌ Ошибка API: {response.status_code} — {response.text}"
-    except Exception as e:
-        return f"❌ Ошибка: {e}"
 
 
 def create_ui():
@@ -374,75 +246,7 @@ def create_ui():
                 lines=18,
                 placeholder='{"telegram":{"channel":"my_channel","enabled":true}}'
             )
-            social_state = gr.State({})
 
-            gr.Markdown("#### Визуальная CRUD-форма")
-            with gr.Row():
-                load_form_btn = gr.Button("📥 Загрузить конфиг в форму")
-                save_form_btn = gr.Button("💾 Сохранить форму на сервер")
-            with gr.Row():
-                selected_network = gr.Dropdown(label="Выберите соцсеть", choices=[], value=None)
-                new_network_name = gr.Textbox(label="Имя новой сети (если добавляете)", placeholder="например: instagram")
-            with gr.Row():
-                network_channel = gr.Textbox(label="Channel / username", placeholder="@my_channel или my_group")
-                network_label = gr.Textbox(label="Label", placeholder="Например: Instagram")
-                network_enabled = gr.Checkbox(label="Включена", value=True)
-            with gr.Row():
-                upsert_btn = gr.Button("➕ Добавить / Обновить")
-                delete_btn = gr.Button("🗑️ Удалить выбранную сеть")
-            call_to_action = gr.Textbox(label="Текст блока соцсетей", value="🔗 Мы в соцсетях:")
-            hashtags_raw = gr.Textbox(label="Хештеги (через запятую)", placeholder="#news, #tech")
-            form_status = gr.Textbox(label="Статус формы", lines=2)
-
-            load_form_btn.click(
-                fn=load_social_links_form,
-                outputs=[
-                    social_state,
-                    selected_network,
-                    network_channel,
-                    network_label,
-                    network_enabled,
-                    call_to_action,
-                    hashtags_raw,
-                    form_status,
-                    social_config,
-                ],
-            )
-
-            selected_network.change(
-                fn=on_network_change,
-                inputs=[selected_network, social_state],
-                outputs=[network_channel, network_label, network_enabled],
-            )
-
-            upsert_btn.click(
-                fn=upsert_network,
-                inputs=[
-                    social_state,
-                    selected_network,
-                    new_network_name,
-                    network_channel,
-                    network_label,
-                    network_enabled,
-                    call_to_action,
-                    hashtags_raw,
-                ],
-                outputs=[social_state, selected_network, form_status, social_config],
-            )
-
-            delete_btn.click(
-                fn=delete_network,
-                inputs=[social_state, selected_network],
-                outputs=[social_state, selected_network, form_status, social_config],
-            )
-
-            save_form_btn.click(
-                fn=save_social_links_state,
-                inputs=[social_state],
-                outputs=form_status,
-            )
-
-            gr.Markdown("#### JSON-режим (для продвинутой ручной правки)")
             with gr.Row():
                 load_social_btn = gr.Button("📥 Загрузить из API")
                 save_social_btn = gr.Button("💾 Сохранить в API")
