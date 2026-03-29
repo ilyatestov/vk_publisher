@@ -58,6 +58,22 @@ def rate_limit(calls_per_second: float = 2.5):
 class VKAPIClient:
     """Клиент для работы с VK API"""
     
+    @staticmethod
+    def _extract_group_info_from_payload(payload: Any) -> Dict[str, Any]:
+        """Извлекает данные группы из разных форматов ответа VK API."""
+        response = payload
+        if isinstance(response, dict) and 'response' in response:
+            response = response.get('response')
+
+        if isinstance(response, dict) and 'groups' in response:
+            groups = response.get('groups') or []
+            return groups[0] if groups else {}
+
+        if isinstance(response, list):
+            return response[0] if response else {}
+
+        return {}
+
     def __init__(self, access_token: str, group_id: str, api_version: str = "5.131"):
         """
         Инициализация клиента VK API
@@ -214,15 +230,6 @@ class VKAPIClient:
         try:
             response = self.vk.groups.getById(group_id=self.group_id)
 
-            # В зависимости от версии библиотеки/метода ответ может быть:
-            # 1) {'groups': [{...}]}
-            # 2) [{...}]
-            if isinstance(response, dict) and 'groups' in response:
-                groups = response.get('groups') or []
-                return groups[0] if groups else {}
-
-            if isinstance(response, list):
-                return response[0] if response else {}
 
             logger.warning(f"Неожиданный формат ответа groups.getById: {type(response)}")
             return {}

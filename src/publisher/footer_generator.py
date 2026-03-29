@@ -40,6 +40,7 @@ class FooterGenerator:
 
     def _normalize_channel(self, channel: str) -> str:
         """Нормализация названия канала/аккаунта"""
+
         templates = {
             'telegram': f"https://t.me/{channel}",
             'youtube': f"https://youtube.com/{channel}",

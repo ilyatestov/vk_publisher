@@ -15,6 +15,11 @@ class VKSettings(BaseSettings):
     api_version: str = "5.199"
     rate_limit_per_second: float = 3.0
     proxy_list: List[str] = Field(default_factory=list, validation_alias="VK_PROXY_LIST")
+    request_timeout: int = 30
+    connect_timeout: int = 10
+    retry_attempts: int = 3
+    retry_wait_min: int = 2
+    retry_wait_max: int = 10
 
     @field_validator('proxy_list', mode='before')
     @classmethod
@@ -30,6 +35,10 @@ class OllamaSettings(BaseSettings):
     model_name: str = "llama2"
     timeout: int = 60
     max_tokens: int = 1000
+    check_timeout: int = 5
+    retry_attempts: int = 3
+    retry_wait_min: int = 2
+    retry_wait_max: int = 10
 
 
 class DatabaseSettings(BaseSettings):

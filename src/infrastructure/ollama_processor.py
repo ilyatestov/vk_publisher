@@ -50,8 +50,12 @@ class OllamaProcessor(AIProcessorInterface):
             log.info("Ollama сессия закрыта")
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
+        stop=stop_after_attempt(settings.ollama.retry_attempts),
+        wait=wait_exponential(
+            multiplier=1,
+            min=settings.ollama.retry_wait_min,
+            max=settings.ollama.retry_wait_max
+        ),
         retry=retry_if_exception_type((OllamaError, aiohttp.ClientError, asyncio.TimeoutError)),
         reraise=True
     )
@@ -196,14 +200,13 @@ class OllamaProcessor(AIProcessorInterface):
             True если модель доступна
         """
         if not self.session:
-            timeout = aiohttp.ClientTimeout(total=5)
+            timeout = aiohttp.ClientTimeout(total=settings.ollama.check_timeout)
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 try:
                     async with session.get(f"{self.base_url}/api/tags") as response:
                         if response.status == 200:
                             result = await response.json()
-                            models = result.get('models', [])
-                            model_names = [m.get('name', '') for m in models]
+                            model_names = self._extract_model_names(result)
                             
                             if self.model_name in model_names:
                                 log.info(f"Модель {self.model_name} доступна")
@@ -225,8 +228,7 @@ class OllamaProcessor(AIProcessorInterface):
                 async with self.session.get(f"{self.base_url}/api/tags") as response:
                     if response.status == 200:
                         result = await response.json()
-                        models = result.get('models', [])
-                        model_names = [m.get('name', '') for m in models]
+                        model_names = self._extract_model_names(result)
                         
                         if self.model_name in model_names:
                             log.info(f"Модель {self.model_name} доступна")
@@ -243,6 +245,18 @@ class OllamaProcessor(AIProcessorInterface):
             except Exception as e:
                 log.error(f"Ошибка проверки модели: {e}")
                 return False
+
+    @staticmethod
+    def _extract_model_names(payload: dict) -> List[str]:
+        """Извлекает имена моделей из payload Ollama /api/tags."""
+        models = payload.get('models', []) if isinstance(payload, dict) else []
+        names = []
+        for model in models:
+            if isinstance(model, dict):
+                name = model.get('name')
+                if name:
+                    names.append(name)
+        return names
 
     def _create_rewrite_prompt(self, text: str, title: str = "") -> str:
         """

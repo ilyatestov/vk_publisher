@@ -63,7 +63,10 @@ class VKClient(SocialPublisherInterface):
             ttl_dns_cache=300,
             use_dns_cache=True
         )
-        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        timeout = aiohttp.ClientTimeout(
+            total=settings.vk.request_timeout,
+            connect=settings.vk.connect_timeout
+        )
         self.session = aiohttp.ClientSession(connector=connector, timeout=timeout)
         log.info("VK API сессия создана")
 
@@ -92,8 +95,12 @@ class VKClient(SocialPublisherInterface):
             self._last_request_time = asyncio.get_event_loop().time()
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
+        stop=stop_after_attempt(settings.vk.retry_attempts),
+        wait=wait_exponential(
+            multiplier=1,
+            min=settings.vk.retry_wait_min,
+            max=settings.vk.retry_wait_max
+        ),
         retry=retry_if_exception_type((VKAPIError, aiohttp.ClientError)),
         reraise=True
     )

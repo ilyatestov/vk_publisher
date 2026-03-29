@@ -16,8 +16,10 @@ class MockDatabase:
     
     def __init__(self):
         self.hashes = set()
+        self.check_duplicate_calls = 0
     
     async def check_duplicate(self, content_hash, days=30):
+        self.check_duplicate_calls += 1
         return content_hash in self.hashes
     
     async def add_content_hash(self, content_hash, title, source, post_id=None):
@@ -83,6 +85,7 @@ class TestDeduplicator:
         assert len(result) == 2
         assert result[0]['content_hash'] == 'hash1'
         assert result[1]['content_hash'] == 'hash2'
+
     
     @pytest.mark.asyncio
     async def test_filter_duplicates_no_hash(self, deduplicator):
