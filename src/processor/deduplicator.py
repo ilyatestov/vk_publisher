@@ -35,6 +35,7 @@ class Deduplicator:
         unique_content = []
         duplicates_count = 0
         seen_hashes = set()
+        db_duplicate_cache: Dict[str, bool] = {}
 
         
         for item in content_list:
@@ -45,15 +46,22 @@ class Deduplicator:
                 continue
 
             
-            # Проверка на дубликат в базе
-            is_duplicate = await self.db.check_duplicate(content_hash, days=30)
-            
-            if is_duplicate or content_hash in seen_hashes:
+            if content_hash in seen_hashes:
                 duplicates_count += 1
                 logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
-            else:
-                seen_hashes.add(content_hash)
-                unique_content.append(item)
+                continue
+
+            # Проверка на дубликат в базе (кэшируем результат для одинаковых хэшей)
+            if content_hash not in db_duplicate_cache:
+                db_duplicate_cache[content_hash] = await self.db.check_duplicate(content_hash, days=30)
+
+            if db_duplicate_cache[content_hash]:
+                duplicates_count += 1
+                logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
+                continue
+
+            seen_hashes.add(content_hash)
+            unique_content.append(item)
         
         logger.info(f"Отфильтровано {duplicates_count} дубликатов из {len(content_list)} материалов")
         return unique_content

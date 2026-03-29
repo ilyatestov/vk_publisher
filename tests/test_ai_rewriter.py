@@ -5,8 +5,6 @@ import pytest
 import asyncio
 from unittest.mock import AsyncMock, patch, MagicMock, PropertyMock
 import aiohttp
-import sys
-sys.path.insert(0, '/workspace/src')
 
 from processor.ai_rewriter import AIRewriter
 
