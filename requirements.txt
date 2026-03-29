@@ -25,7 +25,7 @@ alembic==1.13.2
 # TELEGRAM BOT (AIOMGRAM 3.x)
 # ============================================
 aiogram==3.13.1
-aiofiles==24.1.0
+aiofiles==23.2.1
 
 # ============================================
 # WEB FRAMEWORK (FASTAPI)
