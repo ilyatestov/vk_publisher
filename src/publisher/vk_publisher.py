@@ -2,6 +2,14 @@
 Публикация постов ВКонтакте
 """
 from typing import Dict, Any, Optional, List
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_log,
+    after_log
+)
 from loguru import logger
 
 
