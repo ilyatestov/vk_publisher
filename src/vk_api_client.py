@@ -213,7 +213,22 @@ class VKAPIClient:
         """
         try:
             response = self.vk.groups.getById(group_id=self.group_id)
-            return response['groups'][0]
+
+            if isinstance(response, dict) and 'response' in response:
+                response = response.get('response')
+
+            # В зависимости от версии библиотеки/метода ответ может быть:
+            # 1) {'groups': [{...}]}
+            # 2) [{...}]
+            if isinstance(response, dict) and 'groups' in response:
+                groups = response.get('groups') or []
+                return groups[0] if groups else {}
+
+            if isinstance(response, list):
+                return response[0] if response else {}
+
+            logger.warning(f"Неожиданный формат ответа groups.getById: {type(response)}")
+            return {}
         except Exception as e:
             logger.error(f"Ошибка при получении информации о группе: {e}")
             return {}
