@@ -1,0 +1,11 @@
+{
+  "groups": [
+    {
+      "id": 123456,
+      "name": "Test Group",
+      "screen_name": "test_group",
+      "is_closed": 0,
+      "type": "group"
+    }
+  ]
+}

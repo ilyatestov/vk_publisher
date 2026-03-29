@@ -153,6 +153,22 @@ class TestDatabase:
         assert stats['total_hashes'] >= 2
         assert stats['posts_count'] >= 1
 
+    @pytest.mark.asyncio
+    async def test_connection_reuse_and_close(self, temp_db):
+        """Тест переиспользования соединения и корректного закрытия"""
+        db = Database(temp_db)
+        await db.initialize()
+
+        first_conn = db._connection
+        assert first_conn is not None
+
+        await db.add_content_hash('reuse_hash', 'Title', 'source')
+        second_conn = db._connection
+        assert first_conn is second_conn
+
+        await db.close()
+        assert db._connection is None
+
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

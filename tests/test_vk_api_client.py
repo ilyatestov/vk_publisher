@@ -253,6 +253,7 @@ class TestVKAPIClient:
         assert result['id'] == 123456
         assert result['name'] == 'Test Group'
 
+
     def test_get_group_info_error(self, vk_client, mock_vk_session):
         """Тест ошибки при получении информации о группе"""
         mock_vk_session.get_api.return_value.groups.getById.side_effect = Exception("Group info error")
