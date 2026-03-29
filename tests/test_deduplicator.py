@@ -85,6 +85,8 @@ class TestDeduplicator:
         assert len(result) == 2
         assert result[0]['content_hash'] == 'hash1'
         assert result[1]['content_hash'] == 'hash2'
+        # В БД должно быть только 2 проверки (hash1 и hash2), а не 3
+        assert deduplicator.db.check_duplicate_calls == 2
 
     
     @pytest.mark.asyncio
