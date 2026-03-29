@@ -1,0 +1,73 @@
+name: 💡 Предложение улучшения
+description: Предложите новую идею или улучшение для проекта
+title: "[Feature]: "
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за предложение! Пожалуйста, опишите вашу идею максимально подробно.
+        
+        ⚠️ **Перед созданием issue:**
+        - Проверьте, нет ли уже похожего предложения (вкладка Issues)
+        - Убедитесь, что такая функция ещё не планируется
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Описание проблемы
+      description: Какую проблему решает ваше предложение?
+      placeholder: Например: Мне нужно, чтобы проект мог...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+      description: Опишите, как должно работать ваше предложение
+      placeholder: Подробно опишите, что вы предлагаете добавить или изменить
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативные решения
+      description: Какие ещё варианты решения вы рассматривали?
+      placeholder: Опишите другие способы решения этой проблемы
+    validations:
+      required: false
+
+  - type: textarea
+    id: use_cases
+    attributes:
+      label: Примеры использования
+      description: Приведите примеры, как это будет использоваться
+      placeholder: |
+        Пример 1: Пользователь нажимает кнопку и...
+        Пример 2: При запуске с флагом --new-feature происходит...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Дополнительная информация
+      description: Любая другая информация (скриншоты, макеты, ссылки и т.д.)
+      placeholder: Добавьте скриншоты, перетащив их в это поле
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Чеклист
+      description: Подтвердите выполнение следующих условий
+      options:
+        - label: Я проверил существующие issues и не нашёл похожего предложения
+          required: true
+        - label: Это предложение полезно для большинства пользователей
+          required: true
+        - label: Я готов помочь в реализации (опционально)
+          required: false
