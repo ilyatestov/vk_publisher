@@ -1,0 +1,33 @@
+groups:
+  - name: vk_publisher_alerts
+    interval: 30s
+    rules:
+      # 1. Критическое количество ошибок публикации
+      - alert: HighPublicationErrorRate
+        expr: rate(vk_posts_published_total{status="error"}[5m]) > 0.2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Высокий уровень ошибок публикации"
+          description: "Более 0.2 ошибок в секунду в течение 2 минут. Проверьте логи VK API и токены."
+
+      # 2. Падение воркера обработки
+      - alert: WorkerDown
+        expr: up{job="vk_publisher"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Приложение VK Publisher недоступно"
+          description: "Prometheus не может получить метрики от приложения более 1 минуты."
+
+      # 3. Большая задержка AI обработки
+      - alert: HighAILatency
+        expr: histogram_quantile(0.95, sum(rate(ai_rewrite_duration_seconds_bucket[5m])) by (le)) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая задержка AI обработки"
+          description: "95% запросов к AI обрабатываются дольше 10 секунд. Возможно, перегружен Ollama."
