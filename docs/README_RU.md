@@ -28,6 +28,8 @@
 ### Архитектура и стратегия
 - [`START_HERE.md`](./START_HERE.md) — быстрый onboarding и anti-chaos чеклист.
 - [`ARCHITECTURE_RECONSTRUCTION_RU.md`](./ARCHITECTURE_RECONSTRUCTION_RU.md) — пошаговая реконструкция кода и структуры репозитория.
+- [`ENTRYPOINTS.md`](./ENTRYPOINTS.md) — канонические точки входа (что запускать).
+- [`CODE_OWNERSHIP.md`](./CODE_OWNERSHIP.md) — черновой ownership по модулям.
 - [`PROJECT_AUDIT_RU.md`](./PROJECT_AUDIT_RU.md) — технический аудит и риски.
 - [`PRODUCT_IMPROVEMENT_PLAN_RU.md`](./PRODUCT_IMPROVEMENT_PLAN_RU.md) — roadmap по продуктовым улучшениям.
 
