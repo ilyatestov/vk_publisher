@@ -21,7 +21,7 @@ def temp_config():
             "enabled": True
         },
         "vk": {
-            "group": "test_group",
+            "channel": "test_group",
             "enabled": True
         },
         "hashtags": ["#test", "#news"]
@@ -80,7 +80,7 @@ class TestFooterGenerator:
         
         result = footer_generator.create_full_post(content=content, sources=[])
         
-        assert '@test_channel' in result
+        assert 'https://t.me/test_channel' in result
     
     def test_generate_footer(self, footer_generator):
         """Тест генерации футера"""
@@ -119,6 +119,20 @@ class TestFooterGenerator:
         assert 'Source 1' in footer
         assert 'Source 2' in footer
     
+
+    def test_generate_footer_with_vk_network(self, footer_generator):
+        """Тест, что VK сеть из конфигурации попадает в футер"""
+        footer = footer_generator.generate_footer(sources=[])
+
+        assert 'VK' in footer
+        assert 'https://vk.com/test_group' in footer
+
+    def test_channel_normalization_for_telegram(self, footer_generator):
+        """Тест нормализации @username в URL"""
+        footer = footer_generator.generate_footer(sources=[])
+
+        assert 'https://t.me/test_channel' in footer
+
     def test_load_config_invalid_path(self):
         """Тест загрузки конфигурации - неверный путь"""
         generator = FooterGenerator(social_links_config_path='/nonexistent/path.json')
