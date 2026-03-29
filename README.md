@@ -1,3 +1,7 @@
+ codex/revise-and-secure-vk_publisher-repository
+=======
+codex/revise-and-secure-vk_publisher-repository
+ main
 # VK Publisher (PHP 8.2+)
 
 Production-ready PHP библиотека для безопасной публикации контента во ВКонтакте через VK API.
@@ -11,6 +15,7 @@ Production-ready PHP библиотека для безопасной публи
 - Dependency Injection + интерфейсы.
 - Unit-тесты на PHPUnit с моками HTTP.
 - DevEx: PHPStan, PHP-CS-Fixer, GitHub Actions CI.
+ codex/revise-and-secure-vk_publisher-repository
 
 ---
 
@@ -64,6 +69,61 @@ VK_MAX_RETRIES=3
 ```php
 use VkPublisher\Config\VkConfig;
 
+=======
+
+---
+
+## Установка
+
+```bash
+composer require vk-publisher/vk-publisher
+```
+
+Для разработки в репозитории:
+
+```bash
+composer install
+composer test
+```
+
+---
+
+## Структура
+
+```text
+src/
+├── Client/
+│   └── VkApiClient.php
+├── Services/
+│   ├── PostService.php
+│   └── MediaService.php
+├── DTO/
+├── Exceptions/
+├── Contracts/
+└── Config/
+```
+
+---
+
+## Конфигурация через ENV
+
+`.env` (пример):
+
+```dotenv
+VK_ACCESS_TOKEN=vk1.a.xxxxx
+VK_GROUP_ID=123456
+VK_API_VERSION=5.199
+VK_TIMEOUT=10
+VK_CONNECT_TIMEOUT=3
+VK_MAX_RETRIES=3
+```
+
+Создание конфигурации:
+
+```php
+use VkPublisher\Config\VkConfig;
+
+ main
 $config = VkConfig::fromEnv();
 ```
 
@@ -103,9 +163,15 @@ $result = $postService->publish(new PostRequest(
 
 echo 'Post ID: ' . $result['post_id'] . PHP_EOL;
 ```
+ codex/revise-and-secure-vk_publisher-repository
 
 ---
 
+=======
+
+---
+
+ main
 ## Обработка ошибок
 
 ```php
@@ -152,9 +218,19 @@ composer cs:check
 ---
 
 ## Security checklist
+ codex/revise-and-secure-vk_publisher-repository
+=======
+=======
+
+main
+ main
 
 - ✅ Токены только из ENV.
 - ✅ Логи без секретов.
 - ✅ Таймауты HTTP запросов включены.
 - ✅ Валидация входных DTO.
+ codex/revise-and-secure-vk_publisher-repository
 - ✅ Единая типизированная модель исключений.
+=======
+- ✅ Единая типизированная модель исключений.
+ main
