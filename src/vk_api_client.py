@@ -6,6 +6,17 @@ import time
 from functools import wraps
 from typing import Optional, Dict, Any, List
 import vk_api
+from vk_api.exceptions import ApiError, AuthError
+import requests.exceptions
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    retry_if_result,
+    before_log,
+    after_log
+)
 from loguru import logger
 
 
@@ -67,6 +78,13 @@ class VKAPIClient:
         logger.info(f"VK API клиент инициализирован для группы {group_id}")
     
     @rate_limit(calls_per_second=2.5)
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=4, max=60),
+        retry=retry_if_exception_type((ApiError, requests.exceptions.RequestException, ConnectionError)),
+        before=before_log(logger, 'DEBUG'),
+        after=after_log(logger, 'DEBUG')
+    )
     def post_to_wall(self, 
                      message: str, 
                      attachments: Optional[List[str]] = None,
@@ -113,6 +131,13 @@ class VKAPIClient:
             raise
     
     @rate_limit(calls_per_second=2.5)
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=4, max=60),
+        retry=retry_if_exception_type((ApiError, requests.exceptions.RequestException, ConnectionError)),
+        before=before_log(logger, 'DEBUG'),
+        after=after_log(logger, 'DEBUG')
+    )
     def upload_photo(self, photo_path: str) -> str:
         """
         Загрузка фотографии для последующей публикации
@@ -142,6 +167,13 @@ class VKAPIClient:
             raise
     
     @rate_limit(calls_per_second=2.5)
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=4, max=60),
+        retry=retry_if_exception_type((ApiError, requests.exceptions.RequestException, ConnectionError)),
+        before=before_log(logger, 'DEBUG'),
+        after=after_log(logger, 'DEBUG')
+    )
     def search_newsfeed(self, query: str, count: int = 10) -> List[Dict[str, Any]]:
         """
         Поиск контента через newsfeed.search

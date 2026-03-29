@@ -1,8 +1,17 @@
 """
 Модуль для ИИ-рерайта контента через локальную LLM (Ollama)
 """
+import asyncio
 import aiohttp
 from typing import Optional, List, Dict, Any
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_log,
+    after_log
+)
 from loguru import logger
 
 
@@ -20,6 +29,13 @@ class AIRewriter:
         self.base_url = base_url
         self.model = model
     
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=4, max=30),
+        retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
+        before=before_log(logger, 'DEBUG'),
+        after=after_log(logger, 'DEBUG')
+    )
     async def rewrite(self, 
                       content: str, 
                       title: str = "",
@@ -121,6 +137,13 @@ class AIRewriter:
         
         return prompt
     
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=4, max=30),
+        retry=retry_if_exception_type((aiohttp.ClientError, asyncio.TimeoutError)),
+        before=before_log(logger, 'DEBUG'),
+        after=after_log(logger, 'DEBUG')
+    )
     async def generate_summary(self, articles: List[Dict[str, Any]]) -> Optional[str]:
         """
         Генерация саммари из нескольких статей на одну тему
