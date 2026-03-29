@@ -1,3 +1,4 @@
+codex/revise-and-secure-vk_publisher-repository
 # VK Publisher (PHP 8.2+)
 
 Production-ready PHP библиотека для безопасной публикации контента во ВКонтакте через VK API.
@@ -152,6 +153,9 @@ composer cs:check
 ---
 
 ## Security checklist
+=======
+
+main
 
 - ✅ Токены только из ENV.
 - ✅ Логи без секретов.
