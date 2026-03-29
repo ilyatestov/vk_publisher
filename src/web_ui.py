@@ -7,6 +7,7 @@ import asyncio
 import gradio as gr
 import httpx
 from datetime import datetime
+import json
 
 
 API_BASE_URL = "http://localhost:8000"
@@ -104,6 +105,43 @@ async def get_recent_posts():
         return f"❌ Ошибка: {str(e)}"
 
 
+async def get_social_links_config():
+    """Загрузка конфигурации соцсетей из API"""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{API_BASE_URL}/api/v1/config/social-links", timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                return json.dumps(data.get("config", {}), ensure_ascii=False, indent=2)
+            return f'{{"error": "Ошибка загрузки: {response.status_code}"}}'
+    except Exception as e:
+        return f'{{"error": "{str(e)}"}}'
+
+
+async def save_social_links_config(config_json: str):
+    """Сохранение конфигурации соцсетей через API"""
+    if not config_json.strip():
+        return "❌ Конфигурация пустая"
+
+    try:
+        payload = json.loads(config_json)
+    except json.JSONDecodeError as e:
+        return f"❌ Невалидный JSON: {e}"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.put(
+                f"{API_BASE_URL}/api/v1/config/social-links",
+                json=payload,
+                timeout=10
+            )
+            if response.status_code == 200:
+                return "✅ Конфигурация соцсетей сохранена"
+            return f"❌ Ошибка сохранения: {response.status_code} — {response.text}"
+    except Exception as e:
+        return f"❌ Ошибка: {str(e)}"
+
+
 def create_ui():
     """Создание Gradio интерфейса"""
     
@@ -195,6 +233,33 @@ def create_ui():
             - Установка на Ubuntu/VPS: `docs/UBUNTU_VPS_INSTALL.md`
             - Получение VK API токена: `docs/VK_API_SETUP.md`
             """)
+
+        # Вкладка настроек соцсетей
+        with gr.Tab("⚙️ Соцсети"):
+            gr.Markdown("""
+            ### Настройка блока соцсетей для футера постов
+            Здесь можно загрузить и сохранить JSON-конфиг без ручного редактирования файлов на VPS.
+            """)
+            social_config = gr.Textbox(
+                label="JSON конфигурация соцсетей",
+                lines=18,
+                placeholder='{"telegram":{"channel":"my_channel","enabled":true}}'
+            )
+            with gr.Row():
+                load_social_btn = gr.Button("📥 Загрузить из API")
+                save_social_btn = gr.Button("💾 Сохранить в API")
+            social_result = gr.Textbox(label="Результат", lines=2)
+
+            load_social_btn.click(
+                fn=get_social_links_config,
+                outputs=social_config
+            )
+
+            save_social_btn.click(
+                fn=save_social_links_config,
+                inputs=social_config,
+                outputs=social_result
+            )
     
     return demo
 

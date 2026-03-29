@@ -12,8 +12,12 @@ import asyncio
 import signal
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+from pathlib import Path
+import json
+from typing import Any, Dict
 
 from fastapi import FastAPI
+from fastapi import HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from .core.logging import log
@@ -29,6 +33,7 @@ from .workers.pipeline import PipelineWorker
 # Глобальные переменные для управления жизненным циклом
 pipeline_worker: PipelineWorker = None
 pipeline_task: asyncio.Task = None
+SOCIAL_LINKS_PATH = Path(__file__).resolve().parent.parent / "config" / "social_links.json"
 
 
 @asynccontextmanager
@@ -152,6 +157,54 @@ async def get_statistics():
         return {"statistics": stats}
     finally:
         await storage.close()
+
+
+async def _read_social_links_config() -> Dict[str, Any]:
+    """Чтение конфигурации соцсетей из JSON-файла."""
+    if not SOCIAL_LINKS_PATH.exists():
+        return {}
+
+    def _read() -> Dict[str, Any]:
+        with open(SOCIAL_LINKS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    return await asyncio.to_thread(_read)
+
+
+async def _write_social_links_config(config: Dict[str, Any]) -> None:
+    """Сохранение конфигурации соцсетей в JSON-файл."""
+    SOCIAL_LINKS_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    def _write() -> None:
+        with open(SOCIAL_LINKS_PATH, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+
+    await asyncio.to_thread(_write)
+
+
+@app.get("/api/v1/config/social-links")
+async def get_social_links_config():
+    """Получение текущей конфигурации соцсетей."""
+    try:
+        config = await _read_social_links_config()
+        return {"config": config, "path": str(SOCIAL_LINKS_PATH)}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка JSON-конфига соцсетей: {e}") from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Не удалось прочитать конфиг соцсетей: {e}") from e
+
+
+@app.put("/api/v1/config/social-links")
+async def update_social_links_config(payload: Dict[str, Any]):
+    """Обновление конфигурации соцсетей."""
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Ожидался JSON-объект")
+
+    try:
+        await _write_social_links_config(payload)
+        return {"status": "ok", "message": "Конфигурация соцсетей сохранена"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Не удалось сохранить конфиг соцсетей: {e}") from e
 
 
 def main():
