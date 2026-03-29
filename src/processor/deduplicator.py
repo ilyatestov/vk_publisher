@@ -3,6 +3,7 @@
 """
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
+from time import perf_counter
 from loguru import logger
 
 
@@ -32,30 +33,48 @@ class Deduplicator:
             logger.info("Пустой список материалов, дедупликация не требуется")
             return []
 
-        unique_content = []
+        started_at = perf_counter()
+        unique_content: List[Dict[str, Any]] = []
         duplicates_count = 0
-        seen_hashes = set()
+        seen_hashes: set[str] = set()
+        db_duplicate_cache: Dict[str, bool] = {}
+        db_checks_count = 0
 
-        
         for item in content_list:
             content_hash = item.get('content_hash')
-            
+
             if not content_hash:
                 logger.warning("У материала нет хеша, пропускаем")
                 continue
 
-            
-            # Проверка на дубликат в базе
-            is_duplicate = await self.db.check_duplicate(content_hash, days=30)
-            
-            if is_duplicate or content_hash in seen_hashes:
+            if content_hash in seen_hashes:
                 duplicates_count += 1
                 logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
-            else:
-                seen_hashes.add(content_hash)
-                unique_content.append(item)
+                continue
+
+            # Проверка на дубликат в базе (кэшируем результат для одинаковых хэшей)
+            if content_hash not in db_duplicate_cache:
+                db_checks_count += 1
+                db_duplicate_cache[content_hash] = await self.db.check_duplicate(content_hash, days=30)
+
+            if db_duplicate_cache[content_hash]:
+                duplicates_count += 1
+                logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
+                continue
+
+            seen_hashes.add(content_hash)
+            unique_content.append(item)
         
-        logger.info(f"Отфильтровано {duplicates_count} дубликатов из {len(content_list)} материалов")
+        elapsed_ms = (perf_counter() - started_at) * 1000
+        logger.info(
+            "Отфильтровано {} дубликатов из {} материалов (db_checks={}, unique={}, {:.2f}ms)".format(
+                duplicates_count,
+                len(content_list),
+                db_checks_count,
+                len(unique_content),
+                elapsed_ms
+            )
+        )
         return unique_content
     
     def group_similar_articles(self, 

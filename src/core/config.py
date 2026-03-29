@@ -31,6 +31,11 @@ class VKSettings(BaseSettings):
 
 class OllamaSettings(BaseSettings):
     """Настройки Ollama (ИИ)"""
+    model_config = SettingsConfigDict(
+        extra='ignore',
+        protected_namespaces=('settings_',)
+    )
+
     base_url: str = "http://localhost:11434"
     model_name: str = "llama2"
     timeout: int = 60

@@ -9,6 +9,7 @@
 """
 import asyncio
 from datetime import datetime
+from time import perf_counter
 from typing import Optional
 
 from ..core.logging import log
@@ -57,6 +58,13 @@ class PipelineWorker:
         # Аккаунт по умолчанию
         self._default_account = None
 
+    @staticmethod
+    def _log_stage_timing(stage: str, started_at: float, post_id: Optional[int] = None):
+        """Легковесное микро-профилирование этапов конвейера."""
+        elapsed_ms = (perf_counter() - started_at) * 1000
+        post_part = f" post_id={post_id}" if post_id is not None else ""
+        log.debug(f"[perf] stage={stage}{post_part} elapsed_ms={elapsed_ms:.2f}")
+
     def set_default_account(self, account):
         """Устанавливает аккаунт по умолчанию для публикации"""
         self._default_account = account
@@ -77,7 +85,9 @@ class PipelineWorker:
                     continue
 
                 log.info("Сбор контента из источников...")
+                fetch_started_at = perf_counter()
                 posts = await self.fetcher.fetch_content()
+                self._log_stage_timing("fetch_content", fetch_started_at)
                 log.info(f"Собрано {len(posts)} материалов")
 
                 for post in posts:
@@ -125,6 +135,7 @@ class PipelineWorker:
                 )
                 
                 log.info(f"Обработка поста {post.id} через ИИ...")
+                process_started_at = perf_counter()
 
                 if self.processor:
                     # Переписываем контент через ИИ
@@ -136,6 +147,7 @@ class PipelineWorker:
                 
                 post.status = PostStatus.PROCESSED
                 await self.storage.save_post(post)
+                self._log_stage_timing("process_post", process_started_at, post_id=post.id)
 
                 # Добавляем в очередь модерации
                 await self.moderation_queue.put(post)
@@ -171,6 +183,7 @@ class PipelineWorker:
                 )
                 
                 log.info(f"Модерация поста {post.id}...")
+                moderation_started_at = perf_counter()
 
                 if self.moderator:
                     # Отправляем на модерацию
@@ -196,6 +209,7 @@ class PipelineWorker:
                     log.warning(f"Модератор не настроен, пост {post.id} одобрен автоматически")
 
                 await self.storage.save_post(post)
+                self._log_stage_timing("moderate_post", moderation_started_at, post_id=post.id)
 
                 # Добавляем в очередь публикации
                 await self.publisher_queue.put(post)
@@ -230,6 +244,7 @@ class PipelineWorker:
                 )
                 
                 log.info(f"Публикация поста {post.id}...")
+                publish_started_at = perf_counter()
 
                 # Проверяем, запланирован ли пост на будущее
                 if post.scheduled_at and post.scheduled_at > datetime.utcnow():
@@ -260,6 +275,7 @@ class PipelineWorker:
                     post.status = PostStatus.FAILED
 
                 await self.storage.save_post(post)
+                self._log_stage_timing("publish_post", publish_started_at, post_id=post.id)
                 self.publisher_queue.task_done()
 
             except asyncio.TimeoutError:
