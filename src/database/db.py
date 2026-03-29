@@ -3,10 +3,23 @@
 """
 import asyncio
 import os
+import sqlite3
 import aiosqlite
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from loguru import logger
+
+
+def _adapt_datetime(value: datetime) -> str:
+    """
+    Кастомный adapter для sqlite3.
+
+    Убирает DeprecationWarning Python 3.12+ о встроенном datetime adapter.
+    """
+    return value.isoformat(sep=" ", timespec="seconds")
+
+
+sqlite3.register_adapter(datetime, _adapt_datetime)
 
 
 class Database:
