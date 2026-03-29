@@ -1,0 +1,26 @@
+{
+  "models": [
+    {
+      "name": "qwen2.5:1.5b",
+      "model": "qwen2.5:1.5b",
+      "modified_at": "2026-02-01T10:00:00.000000Z",
+      "size": 989412356,
+      "digest": "sha256:abc123",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": ["qwen2"],
+        "parameter_size": "1.5B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "llama3.1:8b",
+      "model": "llama3.1:8b",
+      "modified_at": "2026-01-28T08:00:00.000000Z",
+      "size": 4729912356,
+      "digest": "sha256:def456"
+    }
+  ]
+}
