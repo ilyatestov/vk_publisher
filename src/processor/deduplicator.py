@@ -42,6 +42,7 @@ class Deduplicator:
 
         for item in content_list:
             content_hash = item.get('content_hash')
+            short_title = item.get('title', 'Без названия')[:50]
 
             if not content_hash:
                 logger.warning("У материала нет хеша, пропускаем")
@@ -49,7 +50,7 @@ class Deduplicator:
 
             if content_hash in seen_hashes:
                 duplicates_count += 1
-                logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
+                logger.debug(f"Найден дубликат: {short_title}...")
                 continue
 
             # Проверка на дубликат в базе (кэшируем результат для одинаковых хэшей)
@@ -59,7 +60,7 @@ class Deduplicator:
 
             if db_duplicate_cache[content_hash]:
                 duplicates_count += 1
-                logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
+                logger.debug(f"Найден дубликат: {short_title}...")
                 continue
 
             seen_hashes.add(content_hash)
