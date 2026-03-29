@@ -84,7 +84,7 @@ class PipelineWorker:
                     # Проверка на дубликаты
                     if hasattr(self.storage, 'check_duplicate') and post.source_url:
                         import hashlib
-                        content_hash = hashlib.md5(post.content.encode()).hexdigest()
+                        content_hash = hashlib.sha256(post.content.encode()).hexdigest()
                         is_duplicate = await self.storage.check_duplicate(content_hash, days=30)
                         
                         if is_duplicate:

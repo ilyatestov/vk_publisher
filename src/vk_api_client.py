@@ -229,8 +229,16 @@ class VKAPIClient:
         """
         try:
             response = self.vk.groups.getById(group_id=self.group_id)
-
-
+            
+            # Обработка ответа VK API (может быть dict с ключом 'groups' или list)
+            if isinstance(response, dict):
+                if 'groups' in response and len(response['groups']) > 0:
+                    return response['groups'][0]
+                elif 'response' in response and len(response['response']) > 0:
+                    return response['response'][0]
+            elif isinstance(response, list) and len(response) > 0:
+                return response[0]
+            
             logger.warning(f"Неожиданный формат ответа groups.getById: {type(response)}")
             return {}
         except Exception as e:
