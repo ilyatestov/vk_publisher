@@ -39,21 +39,14 @@ class FooterGenerator:
             return {}
 
     def _normalize_channel(self, channel: str) -> str:
-        """Нормализация названия канала/аккаунта"""
-
-        templates = {
-            'telegram': f"https://t.me/{channel}",
-            'youtube': f"https://youtube.com/{channel}",
-            'dzen': f"https://dzen.ru/{channel}",
-            'vk': f"https://vk.com/{channel}",
-            'instagram': f"https://instagram.com/{channel}",
-            'x': f"https://x.com/{channel}",
-            'tiktok': f"https://tiktok.com/@{channel}",
-        }
-        return templates.get('telegram', channel)
+        """Нормализация названия канала/аккаунта - удаление @ если есть"""
+        return channel.lstrip('@')
 
     def _build_social_url(self, network: str, channel: str) -> str:
         """Построение URL для соцсети"""
+        # Нормализуем канал - убираем @ если есть
+        channel = channel.lstrip('@')
+        
         templates = {
             'telegram': f"https://t.me/{channel}",
             'youtube': f"https://youtube.com/{channel}",
