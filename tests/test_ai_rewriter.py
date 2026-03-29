@@ -3,7 +3,7 @@
 """
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, patch, MagicMock, PropertyMock
+from unittest.mock import AsyncMock, patch, MagicMock
 import aiohttp
 
 from processor.ai_rewriter import AIRewriter
