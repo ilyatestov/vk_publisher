@@ -82,6 +82,16 @@ docs/
 2. Любой новый модуль создавать только в целевой папке (не в legacy).
 3. Для каждого PR: короткий changelog + обновление документации.
 
+### Уже сделано в рамках PR #1 (cleanup)
+
+- Перенесены legacy-модули:
+  - `src/vk_api_client.py` -> `src/legacy/vk_api_client.py`
+  - `src/publisher/vk_publisher.py` -> `src/legacy/vk_publisher.py`
+- На старых путях оставлены compatibility-shim модули с `DeprecationWarning`.
+- Зафиксированы канонические точки:
+  - VK client (async): `src.infrastructure.vk_api_client.VKClient`
+  - Pipeline runtime: `src.workers.pipeline.PipelineWorker`
+
 ---
 
 ## 5. Технический чек-лист по Python hot-path
@@ -113,4 +123,3 @@ PR: <https://github.com/ilyatestov/vk_publisher/pull/25>
 1. Снять diff локально и проверить руками (что уже сделано).
 2. Создать новый чистый PR после ребейза на `main`.
 3. Разделить изменения на 2–3 маленьких PR (code / tests / docs), чтобы избежать «комбайна».
-
