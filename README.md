@@ -1,164 +1,110 @@
-codex/revise-and-secure-vk_publisher-repository
-# VK Publisher (PHP 8.2+)
+# VK Publisher
 
-Production-ready PHP библиотека для безопасной публикации контента во ВКонтакте через VK API.
+Автопостинг и контент-пайплайн для VK с веб-интерфейсом, дедупликацией, модерацией и публикацией.
 
-## Что сделано в этой модернизации
-
-- Полный переход на **PHP 8.2+**, `strict_types`, PSR-4.
-- Новый HTTP-слой на **Guzzle** вместо прямого cURL.
-- Retry с exponential backoff, таймауты, обработка VK API ошибок.
-- Выделены слои: `Client`, `Services`, `DTO`, `Exceptions`, `Contracts`, `Config`.
-- Dependency Injection + интерфейсы.
-- Unit-тесты на PHPUnit с моками HTTP.
-- DevEx: PHPStan, PHP-CS-Fixer, GitHub Actions CI.
+> Текущий репозиторий содержит **смешанный стек** (Python-приложение + PHP-библиотека).
+> Это рабочее состояние, но его нужно структурно разделить (см. раздел «Реконструкция» ниже).
 
 ---
 
-## Установка
+## 1) Что в проекте сейчас
+
+### Python-часть (основной рантайм)
+- pipeline-воркеры (`fetch -> process -> moderate -> publish`)
+- работа с БД (SQLite/aiosqlite)
+- дедупликация и обработка контента
+- web UI
+
+### PHP-часть (библиотека VK API)
+- `src/Client`, `src/Services`, `src/DTO`, `src/Exceptions`
+- unit-тесты PHPUnit
+
+---
+
+## 2) Быстрый старт (Python)
 
 ```bash
-composer require vk-publisher/vk-publisher
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+pytest -q
 ```
 
-Для разработки в репозитории:
+Запуск приложения:
+
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+Запуск веб-интерфейса:
+
+```bash
+python src/web_ui.py
+```
+
+---
+
+## 3) Быстрый старт (PHP)
 
 ```bash
 composer install
-composer test
+vendor/bin/phpunit --testdox
+vendor/bin/phpstan analyse --no-progress
 ```
 
 ---
 
-## Структура
+## 4) Документация
 
-```text
-src/
-├── Client/
-│   └── VkApiClient.php
-├── Services/
-│   ├── PostService.php
-│   └── MediaService.php
-├── DTO/
-├── Exceptions/
-├── Contracts/
-└── Config/
-```
+### Главный индекс документации
+- [`docs/README_RU.md`](docs/README_RU.md)
 
----
-
-## Конфигурация через ENV
-
-`.env` (пример):
-
-```dotenv
-VK_ACCESS_TOKEN=vk1.a.xxxxx
-VK_GROUP_ID=123456
-VK_API_VERSION=5.199
-VK_TIMEOUT=10
-VK_CONNECT_TIMEOUT=3
-VK_MAX_RETRIES=3
-```
-
-Создание конфигурации:
-
-```php
-use VkPublisher\Config\VkConfig;
-
-$config = VkConfig::fromEnv();
-```
-
-> Никогда не коммитьте `VK_ACCESS_TOKEN` в Git.
+### Ключевые документы
+- Аудит: [`docs/PROJECT_AUDIT_RU.md`](docs/PROJECT_AUDIT_RU.md)
+- План продукта: [`docs/PRODUCT_IMPROVEMENT_PLAN_RU.md`](docs/PRODUCT_IMPROVEMENT_PLAN_RU.md)
+- План реконструкции кода: [`docs/ARCHITECTURE_RECONSTRUCTION_RU.md`](docs/ARCHITECTURE_RECONSTRUCTION_RU.md)
+- Настройка VK API: [`docs/VK_API_SETUP.md`](docs/VK_API_SETUP.md)
+- Установка на VPS: [`docs/UBUNTU_VPS_INSTALL.md`](docs/UBUNTU_VPS_INSTALL.md)
+- Установка на Windows: [`docs/WINDOWS_INSTALL.md`](docs/WINDOWS_INSTALL.md)
+- Web UI: [`docs/WEB_UI_GUIDE.md`](docs/WEB_UI_GUIDE.md)
 
 ---
 
-## Пример использования
+## 5) Текущее состояние архитектуры (честно)
 
-```php
-<?php
+Сейчас в проекте есть «исторический слой» и дублирование ответственности:
+- `src/vk_api_client.py` и `src/infrastructure/vk_api_client.py`
+- разные стили организации кода (чистая архитектура + legacy модули)
+- часть документации устарела и пересекается
 
-declare(strict_types=1);
-
-use VkPublisher\Client\VkApiClient;
-use VkPublisher\Config\VkConfig;
-use VkPublisher\DTO\PhotoUploadRequest;
-use VkPublisher\DTO\PostRequest;
-use VkPublisher\Services\MediaService;
-use VkPublisher\Services\PostService;
-
-require __DIR__ . '/vendor/autoload.php';
-
-$config = VkConfig::fromEnv();
-$client = new VkApiClient($config);
-
-$postService = new PostService($client, $config->groupId);
-$mediaService = new MediaService($client, new \GuzzleHttp\Client(), $config->groupId);
-
-$attachment = $mediaService->uploadWallPhoto(new PhotoUploadRequest(__DIR__ . '/photo.jpg'));
-
-$result = $postService->publish(new PostRequest(
-    message: 'Новый пост через VK Publisher',
-    publishDate: time() + 3600,
-    attachments: [$attachment],
-));
-
-echo 'Post ID: ' . $result['post_id'] . PHP_EOL;
-```
+Это главная причина, почему тяжело ориентироваться.
 
 ---
 
-## Обработка ошибок
+## 6) Реконструкция (как привести к нормальному виду)
 
-```php
-use VkPublisher\Exceptions\CaptchaRequiredException;
-use VkPublisher\Exceptions\RateLimitException;
-use VkPublisher\Exceptions\VkApiException;
+Коротко:
+1. Зафиксировать **канонический runtime path** (какой код «боевой», какой legacy).
+2. Разнести Python app и PHP library (минимум логически в документации, лучше физически по подпапкам/репозиториям).
+3. Ввести единый `docs/README_RU.md` как точку входа.
+4. Обновлять docs только через архитектурный план, чтобы не плодить дубли.
 
-try {
-    $postService->publish(new PostRequest('test'));
-} catch (RateLimitException $e) {
-    // backoff / очередь
-} catch (CaptchaRequiredException $e) {
-    // показать captcha_sid и captcha_img оператору
-} catch (VkApiException $e) {
-    // централизованный error handling
-}
-```
+Подробный пошаговый план: [`docs/ARCHITECTURE_RECONSTRUCTION_RU.md`](docs/ARCHITECTURE_RECONSTRUCTION_RU.md).
 
 ---
 
-## Rate limit стратегия
+## 7) Что с PR #25 (почему «странный»)
 
-- Автоматический retry при сетевых ошибках и VK кодах `6`, `9`, `29`.
-- Exponential backoff: `200ms * 2^N`.
-- После исчерпания retry выбрасывается `RateLimitException`.
-- Для high-load рекомендуется внешняя очередь (RabbitMQ/SQS/Kafka) + worker pool.
+На странице PR видно технические сбои загрузки GitHub UI (`Sorry, something went wrong` / `Uh oh!`) и автоматический комментарий от бота Codex про лимиты ревью. Это похоже на проблемы интерфейса/лимитов интеграции, а не на корректность кода как такового.
 
----
-
-## Тестирование и качество
-
-```bash
-composer test
-composer stan
-composer cs:check
-```
+PR: <https://github.com/ilyatestov/vk_publisher/pull/25>
 
 ---
 
-## Миграция со старой версии
+## 8) Минимальные правила порядка в репо
 
-См. `docs/MIGRATION.md`.
+- Не добавлять новые фичи без обновления `docs/ARCHITECTURE_RECONSTRUCTION_RU.md`.
+- Для каждой функциональной правки: тест + обновление релевантного документа.
+- Не смешивать новые Python-модули с legacy без явной пометки `deprecated`.
 
----
-
-## Security checklist
-=======
-
-main
-
-- ✅ Токены только из ENV.
-- ✅ Логи без секретов.
-- ✅ Таймауты HTTP запросов включены.
-- ✅ Валидация входных DTO.
-- ✅ Единая типизированная модель исключений.
