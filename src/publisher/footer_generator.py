@@ -50,6 +50,19 @@ class FooterGenerator:
             'x': f"https://x.com/{channel}",
             'tiktok': f"https://tiktok.com/@{channel}",
         }
+        return templates.get('telegram', channel)
+
+    def _build_social_url(self, network: str, channel: str) -> str:
+        """Построение URL для соцсети"""
+        templates = {
+            'telegram': f"https://t.me/{channel}",
+            'youtube': f"https://youtube.com/{channel}",
+            'dzen': f"https://dzen.ru/{channel}",
+            'vk': f"https://vk.com/{channel}",
+            'instagram': f"https://instagram.com/{channel}",
+            'x': f"https://x.com/{channel}",
+            'tiktok': f"https://tiktok.com/@{channel}",
+        }
         return templates.get(network, channel)
 
     def _build_social_lines(self) -> List[str]:
