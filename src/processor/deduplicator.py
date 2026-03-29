@@ -34,7 +34,7 @@ class Deduplicator:
 
         unique_content = []
         duplicates_count = 0
-        processed_hashes = set()
+
         
         for item in content_list:
             content_hash = item.get('content_hash')
@@ -43,12 +43,6 @@ class Deduplicator:
                 logger.warning("У материала нет хеша, пропускаем")
                 continue
 
-            if content_hash in processed_hashes:
-                duplicates_count += 1
-                logger.debug(f"Пропущен дубликат в текущем батче: {item.get('title', 'Без названия')[:50]}...")
-                continue
-
-            processed_hashes.add(content_hash)
             
             # Проверка на дубликат в базе
             is_duplicate = await self.db.check_duplicate(content_hash, days=30)
@@ -57,6 +51,7 @@ class Deduplicator:
                 duplicates_count += 1
                 logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")
             else:
+                seen_hashes.add(content_hash)
                 unique_content.append(item)
         
         logger.info(f"Отфильтровано {duplicates_count} дубликатов из {len(content_list)} материалов")

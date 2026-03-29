@@ -229,9 +229,7 @@ class VKAPIClient:
         """
         try:
             response = self.vk.groups.getById(group_id=self.group_id)
-            parsed = self._extract_group_info_from_payload(response)
-            if parsed:
-                return parsed
+
 
             logger.warning(f"Неожиданный формат ответа groups.getById: {type(response)}")
             return {}

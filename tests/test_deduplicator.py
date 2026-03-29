@@ -86,22 +86,6 @@ class TestDeduplicator:
         assert result[0]['content_hash'] == 'hash1'
         assert result[1]['content_hash'] == 'hash2'
 
-    @pytest.mark.asyncio
-    async def test_filter_duplicates_checks_hash_once_per_batch(self, deduplicator, mock_db):
-        """Проверяем, что одинаковый hash проверяется в БД только один раз за батч"""
-        mock_db.hashes.add('hash2')
-        content_list = [
-            {'content_hash': 'hash1', 'title': 'Article 1'},
-            {'content_hash': 'hash2', 'title': 'Article 2'},
-            {'content_hash': 'hash2', 'title': 'Article 2 duplicate'},
-            {'content_hash': 'hash1', 'title': 'Article 1 duplicate'},
-        ]
-
-        result = await deduplicator.filter_duplicates(content_list)
-
-        assert len(result) == 1
-        assert result[0]['content_hash'] == 'hash1'
-        assert mock_db.check_duplicate_calls == 2
     
     @pytest.mark.asyncio
     async def test_filter_duplicates_no_hash(self, deduplicator):

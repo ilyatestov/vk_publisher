@@ -40,32 +40,7 @@ class FooterGenerator:
 
     def _normalize_channel(self, channel: str) -> str:
         """Нормализация названия канала/аккаунта"""
-        raw_channel = channel.strip().replace('@', '')
-        parsed = urlparse(raw_channel if '://' in raw_channel else f"https://{raw_channel}")
-        normalized = parsed.path.strip('/') if parsed.path else raw_channel.strip('/')
 
-        # Если в path ничего нет (например, передали просто username),
-        # используем host/path без схемы.
-        if not normalized:
-            normalized = (parsed.netloc or raw_channel).strip('/')
-
-        return normalized
-
-    def _extract_network_channel(self, network: str, channel: str) -> str:
-        """Извлечение корректного идентификатора канала для конкретной сети."""
-        normalized = self._normalize_channel(channel)
-
-        if network in {'telegram', 'youtube', 'dzen', 'vk', 'instagram', 'x'} and '/' in normalized:
-            return normalized.split('/')[-1]
-
-        if network == 'tiktok':
-            return normalized.split('/')[-1].lstrip('@')
-
-        return normalized
-
-    def _build_social_url(self, network: str, channel: str) -> str:
-        """Построение URL для социальной сети"""
-        channel = self._extract_network_channel(network, channel)
         templates = {
             'telegram': f"https://t.me/{channel}",
             'youtube': f"https://youtube.com/{channel}",

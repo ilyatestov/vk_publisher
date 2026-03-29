@@ -1,309 +1,96 @@
-# VK Publisher v2.0
+# 📘 VK PUBLISHER — ПОЛНОЕ РУКОВОДСТВО ДЛЯ НАЧИНАЮЩИХ
 
-Асинхронное приложение для автопостинга ВКонтакте с использованием Clean Architecture, ИИ-обработки контента и Telegram модерации.
+> **Автоматический сбор, обработка и публикация контента ВКонтакте**
 
-## 🚀 Особенности
-
-- **Clean Architecture** - разделение на domain, infrastructure, application слои
-- **Конвейерная обработка** - 4 воркера через asyncio.Queue (fetcher, processor, moderation, publisher)
-- **REST API** - FastAPI с автоматической документацией (Swagger/OpenAPI)
-- **Web UI** - Удобный веб-интерфейс на Gradio для управления без знания API
-- **Метрики Prometheus** - мониторинг производительности и ошибок
-- **Telegram модерация** - aiogram 3.x для одобрения постов перед публикацией
-- **ИИ-рерайт** - Ollama (локальная LLM) для переписывания контента
-- **База данных** - SQLAlchemy + asyncpg (PostgreSQL) / aiosqlite (SQLite)
-- **Docker** - multi-stage сборка, docker-compose для production
+Этот проект поможет вам автоматически находить интересный контент в интернете, обрабатывать его (в том числе с помощью искусственного интеллекта) и публиковать в вашей группе ВКонтакте.
 
 ---
 
-## 📚 ПОЛНЫЕ ИНСТРУКЦИИ
+## 📖 ОГЛАВЛЕНИЕ
 
-### 🔑 Получение API токенов (ОБЯЗАТЕЛЬНО ПРОЧИТАТЬ!)
-Подробная инструкция по получению всех необходимых токенов:
-👉 **[docs/VK_API_SETUP.md](docs/VK_API_SETUP.md)**
-
-Здесь пошагово описано:
-- Как создать приложение ВКонтакте
-- Как получить токен доступа к API
-- Как узнать ID группы
-- Как создать Telegram бота для модерации
-- Как узнать свой Telegram ID
-
-### 🪟 Установка на Windows
-👉 **[docs/WINDOWS_INSTALL.md](docs/WINDOWS_INSTALL.md)**
-
-Пошаговая инструкция для пользователей Windows:
-- Установка Python и Git
-- Настройка виртуального окружения
-- Запуск приложения
-- Возможные проблемы и решения
-
-### 🐧 Установка на Ubuntu / VPS
-👉 **[docs/UBUNTU_VPS_INSTALL.md](docs/UBUNTU_VPS_INSTALL.md)**
-
-Инструкция для серверов под управлением Ubuntu:
-- Подготовка сервера
-- Настройка systemd для автозапуска
-- Настройка firewall и Nginx
-- SSL сертификаты Let's Encrypt
-
-### 🌐 Web UI интерфейс
-👉 **[docs/WEB_UI_GUIDE.md](docs/WEB_UI_GUIDE.md)**
-
-### 🧭 План развития проекта (Roadmap)
-👉 **[docs/PRODUCT_IMPROVEMENT_PLAN_RU.md](docs/PRODUCT_IMPROVEMENT_PLAN_RU.md)**
-
-Подробный план по улучшениям GUI, дедупликации, автопубликации, безопасности и релизному процессу.
-
-Руководство по использованию веб-интерфейса:
-- Запуск и настройка
-- Управление публикациями через браузер
-- Настройка удаленного доступа
-- Безопасность и аутентификация
+1. [Что это такое?](#-что-это-такое)
+2. [Что нужно перед началом?](#-что-нужно-перед-началом)
+3. [Быстрый старт (5 минут)](#-быстрый-старт-5-минут)
+4. [Подробная установка для Windows](#-подробная-установка-для-windows)
+5. [Подробная установка для Linux/Mac](#-подробная-установка-для-linuxmac)
+6. [Установка через Docker (самый простой способ)](#-установка-через-docker-самый-простой-способ)
+7. [Получение токенов и ключей](#-получение-токенов-и-ключей)
+8. [Настройка файла .env](#-настройка-файла-env)
+9. [Запуск приложения](#-запуск-приложения)
+10. [Проверка работы](#-проверка-работы)
+11. [Частые проблемы и решения](#-частые-проблемы-и-решения)
+12. [Структура проекта](#-структура-проекта)
+13. [Безопасность](#-безопасность)
+14. [Полезные команды](#-полезные-команды)
 
 ---
 
-## 🎯 БЫСТРЫЙ СТАРТ
+## ❓ ЧТО ЭТО ТАКОЕ?
 
-### 1. Получите токены API
-Следуйте инструкции: **[docs/VK_API_SETUP.md](docs/VK_API_SETUP.md)**
+**VK Publisher** — это программа, которая:
 
-Вам понадобятся:
-- Токен VK API
-- ID группы ВКонтакте
-- Токен Telegram бота
-- Ваш Telegram ID
+- 🔍 **Ищет контент** в интернете (RSS-ленты, сайты, другие группы VK)
+- 🤖 **Обрабатывает найденное** (удаляет дубликаты, переписывает текст с помощью ИИ)
+- ✅ **Отправляет на модерацию** в Telegram (вы можете одобрить или отклонить)
+- 📤 **Публикует** одобренный контент в вашей группе ВКонтакте
 
-### 2. Клонируйте репозиторий
+
+
+---
+
+## 📋 ЧТО НУЖНО ПЕРЕД НАЧАЛОМ?
+
+### Минимальные требования:
+
+| Компонент | Требование | Как проверить |
+|-----------|------------|---------------|
+| **Операционная система** | Windows 10/11, macOS, Linux | Уже установлено 😊 |
+| **Python** | Версия 3.10 или выше | `python --version` |
+| **Свободное место** | Минимум 2 ГБ | Проверьте в проводнике |
+| **Оперативная память** | Минимум 2 ГБ | Диспетчер задач |
+| **Интернет** | Обязателен | Проверьте подключение |
+
+### Что нужно подготовить заранее:
+
+1. **Аккаунт ВКонтакте** — вы должны быть администратором группы
+2. **Группа ВКонтакте** — куда будет публиковаться контент
+3. **Telegram-аккаунт** — для получения уведомлений и модерации
+4. **Терпение** — первая настройка займёт 15-30 минут
+
+---
+
+## ⚡ БЫСТРЫЙ СТАРТ (5 МИНУТ)
+
+Если у вас уже установлен Python и вы хотите быстро запустить проект:
+
 ```bash
+# 1. Клонируйте репозиторий
 git clone https://github.com/ilyatestov/vk_publisher.git
 cd vk_publisher
-```
 
-### 3. Создайте виртуальное окружение
-```bash
+# 2. Создайте виртуальное окружение
 python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# или
-.venv\Scripts\activate  # Windows
-```
 
-### 4. Установите зависимости
-```bash
+# 3. Активируйте его
+# Для Windows:
+.venv\Scripts\activate
+# Для Mac/Linux:
+source .venv/bin/activate
+
+# 4. Установите зависимости
 pip install -r requirements.txt
-```
 
-### 5. Настройте конфигурацию
-```bash
+# 5. Скопируйте файл конфигурации
 cp .env.example .env
-```
 
-Откройте `.env` и заполните обязательные поля:
-```bash
-VK__ACCESS_TOKEN=ваш_токен_vk
-VK__GROUP_ID=id_вашей_группы
-TELEGRAM__TOKEN=токен_telegram_бота
-TELEGRAM__MODERATOR_CHAT_ID=ваш_id_telegram
-```
+# 6. Отредактируйте .env (добавьте свои токены)
+# См. раздел "Настройка файла .env" ниже
 
-### 6. Запустите приложение
-```bash
+# 7. Запустите приложение
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+# 8. Откройте в браузере: http://localhost:8000/docs
 ```
 
-### 7. Откройте интерфейсы
-- **Swagger UI (API):** http://localhost:8000/docs
-- **Web UI (Gradio):** запустите `python src/web_ui.py` и откройте http://localhost:7860
+**Готово-l /workspace/README.md && head -30 /workspace/README.md* Теперь переходите к подробной настройке
 
----
-
-## 📁 Структура проекта
-
-```
-vk_publisher/
-├── docs/                  # Полные инструкции по установке и настройке
-│   ├── VK_API_SETUP.md       # 🔑 Как получить токены API
-│   ├── WINDOWS_INSTALL.md    # 🪟 Установка на Windows
-│   ├── UBUNTU_VPS_INSTALL.md # 🐧 Установка на Ubuntu/VPS
-│   └── WEB_UI_GUIDE.md       # 🌐 Руководство по Web UI
-├── src/
-│   ├── core/              # Конфигурация, логирование, исключения
-│   ├── domain/            # Бизнес-сущности и интерфейсы
-│   ├── infrastructure/    # Реализации интерфейсов
-│   ├── workers/           # Конвейерные воркеры
-│   ├── presentation/      # REST API endpoints
-│   ├── web_ui.py          # 🌐 Web интерфейс на Gradio
-│   └── main.py            # Точка входа
-├── tests/                 # Unit и integration тесты
-├── docker/                # Docker конфигурации
-├── .env.example           # Шаблон переменных окружения
-├── docker-compose.yml     # Docker Compose для production
-└── requirements.txt       # Python зависимости
-```
-
-
-## 🔧 Установка
-
-### Локальная разработка
-
-1. Клонируйте репозиторий:
-```bash
-git clone https://github.com/yourusername/vk_publisher.git
-cd vk_publisher
-```
-
-2. Создайте виртуальное окружение:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# или
-.venv\Scripts\activate  # Windows
-```
-
-3. Установите зависимости:
-```bash
-pip install -r requirements.txt
-pip install -r requirements-dev.txt  # для разработки
-```
-
-4. Скопируйте `.env.example` в `.env` и заполните значения:
-```bash
-cp .env.example .env
-```
-
-5. Запустите приложение:
-```bash
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-6. Откройте Swagger UI: http://localhost:8000/docs
-
-### Docker Compose (Production)
-
-1. Заполните `.env` файл необходимыми токенами:
-```bash
-VK_ACCESS_TOKEN=your_vk_token
-VK_GROUP_ID=your_group_id
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-ADMIN_TELEGRAM_ID=your_telegram_id
-ENCRYPTION_KEY=your_32_char_encryption_key
-```
-
-2. Запустите все сервисы:
-```bash
-docker-compose up -d
-```
-
-3. Проверьте статус:
-```bash
-docker-compose ps
-```
-
-4. Остановите сервисы:
-```bash
-docker-compose down
-```
-
-## ⚙️ Конфигурация
-
-### Переменные окружения
-
-| Переменная | Описание | Пример |
-|------------|----------|--------|
-| `VK__ACCESS_TOKEN` | Токен доступа к VK API | `abc123...` |
-| `VK__GROUP_ID` | ID группы ВКонтакте | `123456789` |
-| `TELEGRAM__TOKEN` | Токен Telegram бота | `123456:ABC-DEF...` |
-| `TELEGRAM__MODERATOR_CHAT_ID` | ID чата модератора | `987654321` |
-| `OLLAMA__BASE_URL` | URL Ollama сервера | `http://ollama:11434` |
-| `OLLAMA__MODEL_NAME` | Модель для рерайта | `qwen2.5:1.5b` |
-| `DATABASE__URL` | Connection string БД | `postgresql+asyncpg://...` |
-| `SCHEDULER__MAX_DAILY_POSTS` | Лимит постов в день | `50` |
-
-## 📊 API Endpoints
-
-| Endpoint | Метод | Описание |
-|----------|-------|----------|
-| `/` | GET | Информация о приложении |
-| `/health` | GET | Health check для Docker/K8s |
-| `/metrics` | GET | Метрики Prometheus |
-| `/api/v1/stats` | GET | Статистика по постам |
-| `/docs` | GET | Swagger UI документация |
-
-## 🏗️ Архитектура
-
-### Слои приложения
-
-1. **Domain Layer** (`src/domain/`)
-   - Сущности: `SocialPost`, `VKAccount`
-   - Интерфейсы: `SocialPublisherInterface`, `AIProcessorInterface`, etc.
-
-2. **Infrastructure Layer** (`src/infrastructure/`)
-   - Реализации интерфейсов: `VKClient`, `OllamaProcessor`, `DatabaseStorage`, `TelegramModeratorBot`
-
-3. **Application Layer** (`src/application/`)
-   - Use cases и бизнес-логика
-
-4. **Presentation Layer** (`src/presentation/`)
-   - REST API endpoints (FastAPI)
-
-### Конвейер обработки
-
-```
-[Sources] → [Fetcher Worker] → [Processor Worker] → [Moderation Worker] → [Publisher Worker] → [VK]
-                    ↓                  ↓                    ↓                      ↓
-               asyncio.Queue    asyncio.Queue        asyncio.Queue          asyncio.Queue
-```
-
-## 🧪 Тестирование
-
-```bash
-# Запуск всех тестов
-pytest
-
-# Запуск с покрытием
-pytest --cov=src --cov-report=html
-
-# Запуск конкретного теста
-pytest tests/test_database.py -v
-```
-
-## 📈 Мониторинг
-
-### Prometheus
-
-Откройте http://localhost:9090 для просмотра метрик:
-- Количество запросов к API
-- Время ответа
-- Количество ошибок
-- Длина очередей задач
-
-### Grafana
-
-Откройте http://localhost:3000 (admin/admin):
-- Готовые дашборды для мониторинга
-- Графики производительности
-- Алерты при ошибках
-
-## 🔐 Безопасность
-
-- Маскировка чувствительных данных в логах
-- Шифрование токенов (опционально)
-- Non-root пользователь в Docker контейнере
-- Health checks для всех сервисов
-
-## 🤝 Contributing
-
-1. Fork репозиторий
-2. Создайте feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit изменения (`git commit -m 'Add amazing feature'`)
-4. Push в branch (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
-
-## 📄 License
-
-MIT License
-
-## 📞 Контакты
-
-- Telegram: @yourusername
-- Email: your@email.com

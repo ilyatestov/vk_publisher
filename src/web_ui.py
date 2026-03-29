@@ -142,6 +142,7 @@ async def save_social_links_config(config_json: str):
         return f"❌ Ошибка: {str(e)}"
 
 
+
 def create_ui():
     """Создание Gradio интерфейса"""
     
@@ -245,6 +246,7 @@ def create_ui():
                 lines=18,
                 placeholder='{"telegram":{"channel":"my_channel","enabled":true}}'
             )
+
             with gr.Row():
                 load_social_btn = gr.Button("📥 Загрузить из API")
                 save_social_btn = gr.Button("💾 Сохранить в API")
