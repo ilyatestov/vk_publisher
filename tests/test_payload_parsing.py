@@ -6,12 +6,12 @@ import os
 import sys
 from pathlib import Path
 
-# Добавляем src в path для импортов
-src_path = Path(__file__).parent / ".." / "src"
-sys.path.insert(0, str(src_path.resolve()))
+# Добавляем корень проекта в path для импортов пакета src
+project_root = Path(__file__).parent / ".."
+sys.path.insert(0, str(project_root.resolve()))
 
-from infrastructure.ollama_processor import OllamaProcessor
-from infrastructure.vk_api_client import VKAPIClient
+from src.infrastructure.ollama_processor import OllamaProcessor
+from src.vk_api_client import VKAPIClient
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "integration"

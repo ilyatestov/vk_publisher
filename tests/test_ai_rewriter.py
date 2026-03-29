@@ -6,7 +6,10 @@ import asyncio
 from unittest.mock import AsyncMock, patch, MagicMock, PropertyMock
 import aiohttp
 import sys
-sys.path.insert(0, '/workspace/src')
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str((PROJECT_ROOT / 'src').resolve()))
 
 from processor.ai_rewriter import AIRewriter
 
