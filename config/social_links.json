@@ -1,15 +1,24 @@
 {
+  "call_to_action": "🔗 Подписывайтесь на наши соцсети:",
   "telegram": {
     "channel": "your_channel",
-    "enabled": true
+    "enabled": true,
+    "label": "Telegram"
   },
   "youtube": {
     "channel": "your_channel",
-    "enabled": true
+    "enabled": true,
+    "label": "YouTube"
+  },
+  "vk": {
+    "channel": "your_group",
+    "enabled": true,
+    "label": "VK"
   },
   "dzen": {
     "channel": "your_channel",
-    "enabled": false
+    "enabled": false,
+    "label": "Дзен"
   },
   "hashtags": [
     "#новости",
