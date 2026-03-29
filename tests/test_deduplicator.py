@@ -68,6 +68,21 @@ class TestDeduplicator:
         assert len(result) == 2
         assert result[0]['content_hash'] == 'hash1'
         assert result[1]['content_hash'] == 'hash3'
+
+    @pytest.mark.asyncio
+    async def test_filter_duplicates_within_same_batch(self, deduplicator):
+        """Тест фильтрации дубликатов в пределах одного входного батча"""
+        content_list = [
+            {'content_hash': 'hash1', 'title': 'Article 1'},
+            {'content_hash': 'hash1', 'title': 'Article 1 duplicate in batch'},
+            {'content_hash': 'hash2', 'title': 'Article 2'}
+        ]
+
+        result = await deduplicator.filter_duplicates(content_list)
+
+        assert len(result) == 2
+        assert result[0]['content_hash'] == 'hash1'
+        assert result[1]['content_hash'] == 'hash2'
     
     @pytest.mark.asyncio
     async def test_filter_duplicates_no_hash(self, deduplicator):

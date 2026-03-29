@@ -133,6 +133,27 @@ class TestFooterGenerator:
 
         assert 'https://t.me/test_channel' in footer
 
+    def test_channel_normalization_for_full_telegram_url(self, temp_config):
+        """Тест нормализации полной Telegram ссылки в username"""
+        config = {
+            "telegram": {
+                "channel": "https://t.me/test_channel",
+                "enabled": True
+            }
+        }
+
+        fd, path = tempfile.mkstemp(suffix='.json')
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+
+        try:
+            generator = FooterGenerator(social_links_config_path=path)
+            footer = generator.generate_footer(sources=[])
+            assert 'https://t.me/test_channel' in footer
+            assert 'https://t.me/t.me/test_channel' not in footer
+        finally:
+            os.unlink(path)
+
     def test_load_config_invalid_path(self):
         """Тест загрузки конфигурации - неверный путь"""
         generator = FooterGenerator(social_links_config_path='/nonexistent/path.json')
