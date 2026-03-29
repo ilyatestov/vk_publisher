@@ -1,96 +1,160 @@
-# 📘 VK PUBLISHER — ПОЛНОЕ РУКОВОДСТВО ДЛЯ НАЧИНАЮЩИХ
+# VK Publisher (PHP 8.2+)
 
-> **Автоматический сбор, обработка и публикация контента ВКонтакте**
+Production-ready PHP библиотека для безопасной публикации контента во ВКонтакте через VK API.
 
-Этот проект поможет вам автоматически находить интересный контент в интернете, обрабатывать его (в том числе с помощью искусственного интеллекта) и публиковать в вашей группе ВКонтакте.
+## Что сделано в этой модернизации
 
----
-
-## 📖 ОГЛАВЛЕНИЕ
-
-1. [Что это такое?](#-что-это-такое)
-2. [Что нужно перед началом?](#-что-нужно-перед-началом)
-3. [Быстрый старт (5 минут)](#-быстрый-старт-5-минут)
-4. [Подробная установка для Windows](#-подробная-установка-для-windows)
-5. [Подробная установка для Linux/Mac](#-подробная-установка-для-linuxmac)
-6. [Установка через Docker (самый простой способ)](#-установка-через-docker-самый-простой-способ)
-7. [Получение токенов и ключей](#-получение-токенов-и-ключей)
-8. [Настройка файла .env](#-настройка-файла-env)
-9. [Запуск приложения](#-запуск-приложения)
-10. [Проверка работы](#-проверка-работы)
-11. [Частые проблемы и решения](#-частые-проблемы-и-решения)
-12. [Структура проекта](#-структура-проекта)
-13. [Безопасность](#-безопасность)
-14. [Полезные команды](#-полезные-команды)
+- Полный переход на **PHP 8.2+**, `strict_types`, PSR-4.
+- Новый HTTP-слой на **Guzzle** вместо прямого cURL.
+- Retry с exponential backoff, таймауты, обработка VK API ошибок.
+- Выделены слои: `Client`, `Services`, `DTO`, `Exceptions`, `Contracts`, `Config`.
+- Dependency Injection + интерфейсы.
+- Unit-тесты на PHPUnit с моками HTTP.
+- DevEx: PHPStan, PHP-CS-Fixer, GitHub Actions CI.
 
 ---
 
-## ❓ ЧТО ЭТО ТАКОЕ?
-
-**VK Publisher** — это программа, которая:
-
-- 🔍 **Ищет контент** в интернете (RSS-ленты, сайты, другие группы VK)
-- 🤖 **Обрабатывает найденное** (удаляет дубликаты, переписывает текст с помощью ИИ)
-- ✅ **Отправляет на модерацию** в Telegram (вы можете одобрить или отклонить)
-- 📤 **Публикует** одобренный контент в вашей группе ВКонтакте
-
-
-
----
-
-## 📋 ЧТО НУЖНО ПЕРЕД НАЧАЛОМ?
-
-### Минимальные требования:
-
-| Компонент | Требование | Как проверить |
-|-----------|------------|---------------|
-| **Операционная система** | Windows 10/11, macOS, Linux | Уже установлено 😊 |
-| **Python** | Версия 3.10 или выше | `python --version` |
-| **Свободное место** | Минимум 2 ГБ | Проверьте в проводнике |
-| **Оперативная память** | Минимум 2 ГБ | Диспетчер задач |
-| **Интернет** | Обязателен | Проверьте подключение |
-
-### Что нужно подготовить заранее:
-
-1. **Аккаунт ВКонтакте** — вы должны быть администратором группы
-2. **Группа ВКонтакте** — куда будет публиковаться контент
-3. **Telegram-аккаунт** — для получения уведомлений и модерации
-4. **Терпение** — первая настройка займёт 15-30 минут
-
----
-
-## ⚡ БЫСТРЫЙ СТАРТ (5 МИНУТ)
-
-Если у вас уже установлен Python и вы хотите быстро запустить проект:
+## Установка
 
 ```bash
-# 1. Клонируйте репозиторий
-git clone https://github.com/ilyatestov/vk_publisher.git
-cd vk_publisher
-
-# 2. Создайте виртуальное окружение
-python -m venv .venv
-
-# 3. Активируйте его
-# Для Windows:
-.venv\Scripts\activate
-# Для Mac/Linux:
-source .venv/bin/activate
-
-# 4. Установите зависимости
-pip install -r requirements.txt
-
-# 5. Скопируйте файл конфигурации
-cp .env.example .env
-
-# 6. Отредактируйте .env (добавьте свои токены)
-# См. раздел "Настройка файла .env" ниже
-
-# 7. Запустите приложение
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-
-# 8. Откройте в браузере: http://localhost:8000/docs
+composer require vk-publisher/vk-publisher
 ```
 
-**Готово-l /workspace/README.md && head -30 /workspace/README.md* Теперь переходите к подробной настройке
+Для разработки в репозитории:
 
+```bash
+composer install
+composer test
+```
+
+---
+
+## Структура
+
+```text
+src/
+├── Client/
+│   └── VkApiClient.php
+├── Services/
+│   ├── PostService.php
+│   └── MediaService.php
+├── DTO/
+├── Exceptions/
+├── Contracts/
+└── Config/
+```
+
+---
+
+## Конфигурация через ENV
+
+`.env` (пример):
+
+```dotenv
+VK_ACCESS_TOKEN=vk1.a.xxxxx
+VK_GROUP_ID=123456
+VK_API_VERSION=5.199
+VK_TIMEOUT=10
+VK_CONNECT_TIMEOUT=3
+VK_MAX_RETRIES=3
+```
+
+Создание конфигурации:
+
+```php
+use VkPublisher\Config\VkConfig;
+
+$config = VkConfig::fromEnv();
+```
+
+> Никогда не коммитьте `VK_ACCESS_TOKEN` в Git.
+
+---
+
+## Пример использования
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use VkPublisher\Client\VkApiClient;
+use VkPublisher\Config\VkConfig;
+use VkPublisher\DTO\PhotoUploadRequest;
+use VkPublisher\DTO\PostRequest;
+use VkPublisher\Services\MediaService;
+use VkPublisher\Services\PostService;
+
+require __DIR__ . '/vendor/autoload.php';
+
+$config = VkConfig::fromEnv();
+$client = new VkApiClient($config);
+
+$postService = new PostService($client, $config->groupId);
+$mediaService = new MediaService($client, new \GuzzleHttp\Client(), $config->groupId);
+
+$attachment = $mediaService->uploadWallPhoto(new PhotoUploadRequest(__DIR__ . '/photo.jpg'));
+
+$result = $postService->publish(new PostRequest(
+    message: 'Новый пост через VK Publisher',
+    publishDate: time() + 3600,
+    attachments: [$attachment],
+));
+
+echo 'Post ID: ' . $result['post_id'] . PHP_EOL;
+```
+
+---
+
+## Обработка ошибок
+
+```php
+use VkPublisher\Exceptions\CaptchaRequiredException;
+use VkPublisher\Exceptions\RateLimitException;
+use VkPublisher\Exceptions\VkApiException;
+
+try {
+    $postService->publish(new PostRequest('test'));
+} catch (RateLimitException $e) {
+    // backoff / очередь
+} catch (CaptchaRequiredException $e) {
+    // показать captcha_sid и captcha_img оператору
+} catch (VkApiException $e) {
+    // централизованный error handling
+}
+```
+
+---
+
+## Rate limit стратегия
+
+- Автоматический retry при сетевых ошибках и VK кодах `6`, `9`, `29`.
+- Exponential backoff: `200ms * 2^N`.
+- После исчерпания retry выбрасывается `RateLimitException`.
+- Для high-load рекомендуется внешняя очередь (RabbitMQ/SQS/Kafka) + worker pool.
+
+---
+
+## Тестирование и качество
+
+```bash
+composer test
+composer stan
+composer cs:check
+```
+
+---
+
+## Миграция со старой версии
+
+См. `docs/MIGRATION.md`.
+
+---
+
+## Security checklist
+
+- ✅ Токены только из ENV.
+- ✅ Логи без секретов.
+- ✅ Таймауты HTTP запросов включены.
+- ✅ Валидация входных DTO.
+- ✅ Единая типизированная модель исключений.

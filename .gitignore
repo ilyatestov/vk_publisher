@@ -1,1 +1,9 @@
-(src/workers/pipeline.py)
+/vendor/
+/.phpunit.result.cache
+/.php-cs-fixer.cache
+/.idea/
+/.vscode/
+.env
+logs/
+__pycache__/
+.pytest_cache/
