@@ -8,215 +8,65 @@ VK Publisher v2.0 - Main Entry Point
 - Метриками Prometheus
 - Telegram модерацией
 """
-import asyncio
-import signal
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from pathlib import Path
-import json
-from typing import Any, Dict
 
 from fastapi import FastAPI
-from fastapi import HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from .api.routes.config import router as config_router
+from .api.routes.stats import router as stats_router
+from .api.routes.system import router as system_router
+from .bootstrap.container import AppContainer, build_container, shutdown_container
 from .core.logging import log
-from .core.config import settings
-from .domain.entities import VKAccount, ContentSource
-from .infrastructure.database import DatabaseStorage
-from .infrastructure.vk_api_client import VKClient
-from .infrastructure.ollama_processor import OllamaProcessor
-from .infrastructure.telegram_bot import TelegramModeratorBot
-from .workers.pipeline import PipelineWorker
-
-
-# Глобальные переменные для управления жизненным циклом
-pipeline_worker: PipelineWorker = None
-pipeline_task: asyncio.Task = None
-SOCIAL_LINKS_PATH = Path(__file__).resolve().parent.parent / "config" / "social_links.json"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Управление жизненным циклом приложения"""
-    global pipeline_worker, pipeline_task
-    
     log.info("=" * 60)
     log.info("Инициализация VK Publisher v2.0...")
     log.info("=" * 60)
-    
-    # Инициализация базы данных
-    storage = DatabaseStorage(settings.database.url)
-    await storage.initialize()
-    
-    # Создание компонентов
-    async with OllamaProcessor() as processor, VKClient() as publisher:
-        # Проверка доступности модели ИИ
-        if await processor.check_model_availability():
-            log.success(f"ИИ модель {settings.ollama.model_name} доступна")
-        else:
-            log.warning(f"ИИ модель {settings.ollama.model_name} недоступна")
-        
-        # Инициализация Telegram бота для модерации
-        moderator = TelegramModeratorBot()
-        
-        # Создание аккаунта по умолчанию
-        default_account = VKAccount(
-            id=settings.vk.group_id,
-            name="Default Group",
-            access_token=settings.vk.access_token,
-            daily_quota=settings.scheduler.max_daily_posts
-        )
-        
-        # Создание конвейера
-        pipeline_worker = PipelineWorker(
-            storage=storage,
-            processor=processor,
-            publisher=publisher,
-            moderator=moderator
-        )
-        pipeline_worker.set_default_account(default_account)
-        
-        # Запуск воркеров в фоне
-        pipeline_task = asyncio.create_task(
-            pipeline_worker.start_workers(),
-            name="pipeline"
-        )
-        
-        log.info("Все компоненты инициализированы")
-        log.info("=" * 60)
-        
-        yield
-        
-        # Завершение работы
-        log.info("=" * 60)
-        log.info("Завершение работы приложения...")
-        
-        if pipeline_worker:
-            await pipeline_worker.shutdown()
-        
-        if pipeline_task and not pipeline_task.done():
-            pipeline_task.cancel()
-            try:
-                await pipeline_task
-            except asyncio.CancelledError:
-                log.info("Конвейер остановлен")
-        
-        await storage.close()
-        log.info("Приложение остановлено")
-        log.info("=" * 60)
+
+    container: AppContainer = await build_container()
+    app.state.container = container
+
+    log.info("Все компоненты инициализированы")
+    log.info("=" * 60)
+
+    yield
+
+    log.info("=" * 60)
+    log.info("Завершение работы приложения...")
+    await shutdown_container(getattr(app.state, "container", None))
+    log.info("Приложение остановлено")
+    log.info("=" * 60)
 
 
-# Создание FastAPI приложения
 app = FastAPI(
     title="VK Publisher API",
     description="REST API для системы автопостинга ВКонтакте",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
-# Добавление метрик Prometheus
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
-
-@app.get("/health")
-async def health_check():
-    """
-    Health check endpoint для Docker/K8s
-    
-    Returns:
-        Статус здоровья приложения
-    """
-    return {
-        "status": "healthy",
-        "timestamp": asyncio.get_event_loop().time()
-    }
-
-
-@app.get("/")
-async def root():
-    """Корневой endpoint с информацией о приложении"""
-    return {
-        "name": "VK Publisher",
-        "version": "2.0.0",
-        "description": "Система автопостинга ВКонтакте с ИИ-обработкой",
-        "docs": "/docs",
-        "health": "/health",
-        "metrics": "/metrics"
-    }
-
-
-@app.get("/api/v1/stats")
-async def get_statistics():
-    """Получение статистики по постам"""
-    from .infrastructure.database import DatabaseStorage
-    storage = DatabaseStorage(settings.database.url)
-    try:
-        await storage.initialize()
-        stats = await storage.get_statistics()
-        return {"statistics": stats}
-    finally:
-        await storage.close()
-
-
-async def _read_social_links_config() -> Dict[str, Any]:
-    """Чтение конфигурации соцсетей из JSON-файла."""
-    if not SOCIAL_LINKS_PATH.exists():
-        return {}
-
-    def _read() -> Dict[str, Any]:
-        with open(SOCIAL_LINKS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    return await asyncio.to_thread(_read)
-
-
-async def _write_social_links_config(config: Dict[str, Any]) -> None:
-    """Сохранение конфигурации соцсетей в JSON-файл."""
-    SOCIAL_LINKS_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-    def _write() -> None:
-        with open(SOCIAL_LINKS_PATH, "w", encoding="utf-8") as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
-
-    await asyncio.to_thread(_write)
-
-
-@app.get("/api/v1/config/social-links")
-async def get_social_links_config():
-    """Получение текущей конфигурации соцсетей."""
-    try:
-        config = await _read_social_links_config()
-        return {"config": config, "path": str(SOCIAL_LINKS_PATH)}
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка JSON-конфига соцсетей: {e}") from e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Не удалось прочитать конфиг соцсетей: {e}") from e
-
-
-@app.put("/api/v1/config/social-links")
-async def update_social_links_config(payload: Dict[str, Any]):
-    """Обновление конфигурации соцсетей."""
-    if not isinstance(payload, dict):
-        raise HTTPException(status_code=400, detail="Ожидался JSON-объект")
-
-    try:
-        await _write_social_links_config(payload)
-        return {"status": "ok", "message": "Конфигурация соцсетей сохранена"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Не удалось сохранить конфиг соцсетей: {e}") from e
+app.include_router(system_router)
+app.include_router(stats_router)
+app.include_router(config_router)
 
 
 def main():
     """Точка входа для запуска через uvicorn"""
     import uvicorn
-    
+
     uvicorn.run(
         "src.main:app",
         host="0.0.0.0",
         port=8000,
         reload=False,
-        log_level="info"
+        log_level="info",
     )
 
 
