@@ -34,11 +34,7 @@ class Deduplicator:
 
         unique_content: List[Dict[str, Any]] = []
         duplicates_count = 0
- codex/optimize-repository-codebase
         seen_hashes: set[str] = set()
-=======
-        seen_hashes = set()
- main
         db_duplicate_cache: Dict[str, bool] = {}
 
         for item in content_list:
@@ -48,10 +44,7 @@ class Deduplicator:
                 logger.warning("У материала нет хеша, пропускаем")
                 continue
 
- codex/optimize-repository-codebase
-=======
             
- main
             if content_hash in seen_hashes:
                 duplicates_count += 1
                 logger.debug(f"Найден дубликат: {item.get('title', 'Без названия')[:50]}...")

@@ -402,3 +402,37 @@ class DatabaseStorage(StorageInterface):
             except Exception as e:
                 log.error(f"Ошибка получения статистики: {e}")
                 raise DatabaseError(f"Failed to get statistics: {e}")
+
+    async def is_publication_key_used(self, idempotency_key: str) -> bool:
+        """Проверяет, использовался ли idempotency key ранее."""
+        async with self.SessionLocal() as session:
+            try:
+                stmt = select(PublishedPostModel.id).where(
+                    PublishedPostModel.content_hash == idempotency_key
+                ).limit(1)
+                result = await session.execute(stmt)
+                return result.scalar_one_or_none() is not None
+            except Exception as e:
+                log.error(f"Ошибка проверки idempotency key: {e}")
+                raise DatabaseError(f"Failed to check idempotency key: {e}")
+
+    async def register_publication_key(
+        self,
+        idempotency_key: str,
+        text: str,
+        vk_post_id: Optional[int] = None
+    ) -> None:
+        """Регистрирует успешную публикацию по idempotency key."""
+        async with self.SessionLocal() as session:
+            try:
+                row = PublishedPostModel(
+                    vk_post_id=vk_post_id,
+                    content_hash=idempotency_key,
+                    text=text
+                )
+                session.add(row)
+                await session.commit()
+            except Exception as e:
+                await session.rollback()
+                log.error(f"Ошибка регистрации idempotency key: {e}")
+                raise DatabaseError(f"Failed to register idempotency key: {e}")
