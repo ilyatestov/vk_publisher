@@ -1,144 +1,129 @@
-codex/revise-and-secure-vk_publisher-repository
-# VK Publisher (PHP 8.2+)
+# VK Publisher
 
-Production-ready PHP библиотека для безопасной публикации контента во ВКонтакте через VK API.
+VK Publisher — это репозиторий с двумя направлениями:
 
-## Что сделано в этой модернизации
+1. **Основное приложение (Python/FastAPI)** для автоматизации публикаций во ВКонтакте.
+2. **PHP-библиотека (`vk-publisher/vk-publisher`)** для безопасной публикации через VK API.
 
-- Полный переход на **PHP 8.2+**, `strict_types`, PSR-4.
-- Новый HTTP-слой на **Guzzle** вместо прямого cURL.
-- Retry с exponential backoff, таймауты, обработка VK API ошибок.
-- Выделены слои: `Client`, `Services`, `DTO`, `Exceptions`, `Contracts`, `Config`.
-- Dependency Injection + интерфейсы.
-- Unit-тесты на PHPUnit с моками HTTP.
-- DevEx: PHPStan, PHP-CS-Fixer, GitHub Actions CI.
+> Ниже основной фокус — эксплуатация Python-приложения (API, pipeline, модерация, деплой).
+
+## Что умеет проект
+
+### Основной runtime (Python)
+- Асинхронный конвейер обработки контента: `fetch -> AI rewrite -> moderation -> publish`.
+- FastAPI API с endpoint'ами: `/`, `/health`, `/metrics`, `/api/v1/stats`.
+- Сохранение состояния/постов в БД (SQLite или PostgreSQL через SQLAlchemy Async).
+- Интеграция с VK API для публикации.
+- Модерация через Telegram-бота.
+- Интеграция с Ollama для AI-рерайта (опционально).
+- Gradio Web UI для операторских задач (частично функциональный интерфейс).
+- Набор тестов на Python (`pytest`) и отдельные PHP unit-тесты.
+
+### PHP-библиотека
+- VK API client на Guzzle, retry/backoff, typed exceptions, DTO, сервисы публикации и загрузки медиа.
+- Подходит как отдельный package через Composer.
 
 ---
 
-## Установка
+## Быстрый старт (локально)
 
+### 1) Клонирование и окружение
 ```bash
-composer require vk-publisher/vk-publisher
+git clone https://github.com/ilyatestov/vk_publisher.git
+cd vk_publisher
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Для разработки в репозитории:
+### 2) Конфиг
+```bash
+cp .env.example .env
+```
 
+Минимально заполните:
+- `VK_ACCESS_TOKEN`
+- `VK_GROUP_ID`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_MODERATOR_CHAT_ID`
+
+### 3) Проверка готовности
+```bash
+python scripts/test_setup.py
+```
+
+### 4) Запуск API
+```bash
+uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
+
+Полезные URL:
+- API root: `http://localhost:8000/`
+- Swagger: `http://localhost:8000/docs`
+- Health: `http://localhost:8000/health`
+- Metrics: `http://localhost:8000/metrics`
+
+### 5) (Опционально) запуск Web UI
+```bash
+python src/web_ui.py
+```
+Откройте `http://localhost:7860`.
+
+---
+
+## Документация
+
+- [Установка на Ubuntu/VPS](docs/UBUNTU_VPS_INSTALL.md)
+- [Установка на Windows](docs/WINDOWS_INSTALL.md)
+- [Настройка VK API и Telegram](docs/VK_API_SETUP.md)
+- [Web UI: запуск и ограничения](docs/WEB_UI_GUIDE.md)
+- [Структура проекта (подробно)](docs/PROJECT_STRUCTURE.md)
+- [Миграция по PHP-библиотеке](docs/MIGRATION.md)
+- [Рекомендации и улучшения](RECOMMENDATIONS.md)
+
+---
+
+## Конфигурация `.env`
+
+Проект поддерживает **оба варианта** переменных:
+- Плоские (legacy): `VK_ACCESS_TOKEN`, `TELEGRAM_BOT_TOKEN`, ...
+- Nested (`__`): `VK__ACCESS_TOKEN`, `TELEGRAM__TOKEN`, ...
+
+Рекомендуется использовать плоские ключи из `.env.example` для простоты.
+
+---
+
+## Запуск через Docker Compose
+
+```bash
+docker compose up -d
+```
+
+Сервисы:
+- `app` (FastAPI)
+- `db` (PostgreSQL)
+- `redis`
+- `prometheus`
+- `grafana`
+- `ollama` (по профилю `with-ollama`)
+
+Остановка:
+```bash
+docker compose down
+```
+
+---
+
+## Проверка качества
+
+### Python
+```bash
+pytest
+```
+
+### PHP library
 ```bash
 composer install
-composer test
-```
-
----
-
-## Структура
-
-```text
-src/
-├── Client/
-│   └── VkApiClient.php
-├── Services/
-│   ├── PostService.php
-│   └── MediaService.php
-├── DTO/
-├── Exceptions/
-├── Contracts/
-└── Config/
-```
-
----
-
-## Конфигурация через ENV
-
-`.env` (пример):
-
-```dotenv
-VK_ACCESS_TOKEN=vk1.a.xxxxx
-VK_GROUP_ID=123456
-VK_API_VERSION=5.199
-VK_TIMEOUT=10
-VK_CONNECT_TIMEOUT=3
-VK_MAX_RETRIES=3
-```
-
-Создание конфигурации:
-
-```php
-use VkPublisher\Config\VkConfig;
-
-$config = VkConfig::fromEnv();
-```
-
-> Никогда не коммитьте `VK_ACCESS_TOKEN` в Git.
-
----
-
-## Пример использования
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use VkPublisher\Client\VkApiClient;
-use VkPublisher\Config\VkConfig;
-use VkPublisher\DTO\PhotoUploadRequest;
-use VkPublisher\DTO\PostRequest;
-use VkPublisher\Services\MediaService;
-use VkPublisher\Services\PostService;
-
-require __DIR__ . '/vendor/autoload.php';
-
-$config = VkConfig::fromEnv();
-$client = new VkApiClient($config);
-
-$postService = new PostService($client, $config->groupId);
-$mediaService = new MediaService($client, new \GuzzleHttp\Client(), $config->groupId);
-
-$attachment = $mediaService->uploadWallPhoto(new PhotoUploadRequest(__DIR__ . '/photo.jpg'));
-
-$result = $postService->publish(new PostRequest(
-    message: 'Новый пост через VK Publisher',
-    publishDate: time() + 3600,
-    attachments: [$attachment],
-));
-
-echo 'Post ID: ' . $result['post_id'] . PHP_EOL;
-```
-
----
-
-## Обработка ошибок
-
-```php
-use VkPublisher\Exceptions\CaptchaRequiredException;
-use VkPublisher\Exceptions\RateLimitException;
-use VkPublisher\Exceptions\VkApiException;
-
-try {
-    $postService->publish(new PostRequest('test'));
-} catch (RateLimitException $e) {
-    // backoff / очередь
-} catch (CaptchaRequiredException $e) {
-    // показать captcha_sid и captcha_img оператору
-} catch (VkApiException $e) {
-    // централизованный error handling
-}
-```
-
----
-
-## Rate limit стратегия
-
-- Автоматический retry при сетевых ошибках и VK кодах `6`, `9`, `29`.
-- Exponential backoff: `200ms * 2^N`.
-- После исчерпания retry выбрасывается `RateLimitException`.
-- Для high-load рекомендуется внешняя очередь (RabbitMQ/SQS/Kafka) + worker pool.
-
----
-
-## Тестирование и качество
-
-```bash
 composer test
 composer stan
 composer cs:check
@@ -146,19 +131,16 @@ composer cs:check
 
 ---
 
-## Миграция со старой версии
+## Рекомендованная структура эксплуатации
 
-См. `docs/MIGRATION.md`.
+1. Сначала поднять API и проверить `/health`.
+2. Проверить конфиг и токены через `scripts/test_setup.py`.
+3. Включать Ollama только при необходимости AI-рерайта.
+4. Для продакшена использовать systemd + reverse proxy (Nginx/Caddy).
+5. Использовать Prometheus/Grafana для мониторинга.
 
 ---
 
-## Security checklist
-=======
+## Лицензия
 
-main
-
-- ✅ Токены только из ENV.
-- ✅ Логи без секретов.
-- ✅ Таймауты HTTP запросов включены.
-- ✅ Валидация входных DTO.
-- ✅ Единая типизированная модель исключений.
+MIT
