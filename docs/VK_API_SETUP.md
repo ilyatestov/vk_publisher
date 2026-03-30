@@ -158,12 +158,12 @@ BotFather выдаст вам токен вида:
 
 ```bash
 # VK API
-VK__ACCESS_TOKEN=abc123def456...              # Токен из шага 2
-VK__GROUP_ID=123456789                        # ID группы из шага 3
+VK_ACCESS_TOKEN=abc123def456...               # Токен из шага 2
+VK_GROUP_ID=123456789                         # ID группы из шага 3
 
 # Telegram
-TELEGRAM__TOKEN=1234567890:ABCdefGHIjkl...    # Токен бота из шага 4.3
-TELEGRAM__MODERATOR_CHAT_ID=987654321         # Ваш ID из шага 4.4
+TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjkl... # Токен бота из шага 4.3
+TELEGRAM_MODERATOR_CHAT_ID=987654321          # Ваш ID из шага 4.4
 
 # Остальные настройки можно оставить по умолчанию
 ```

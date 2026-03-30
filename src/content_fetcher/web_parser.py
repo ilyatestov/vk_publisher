@@ -8,6 +8,8 @@ from datetime import datetime
 from loguru import logger
 import hashlib
 
+from ..utils.url_safety import is_safe_public_url
+
 
 class WebParser:
     """Парсер веб-сайтов"""
@@ -39,6 +41,10 @@ class WebParser:
         """
         try:
             logger.info(f"Парсинг веб-сайта: {url}")
+
+            if not is_safe_public_url(url):
+                logger.warning(f"Небезопасный URL отклонён (SSRF guard): {url}")
+                return []
             
             async with aiohttp.ClientSession(headers=self.headers) as session:
                 async with session.get(url, proxy=self.proxy) as response:

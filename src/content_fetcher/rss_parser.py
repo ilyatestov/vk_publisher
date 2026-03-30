@@ -7,6 +7,8 @@ from datetime import datetime
 from loguru import logger
 import hashlib
 
+from ..utils.url_safety import is_safe_public_url
+
 
 class RSSParser:
     """Парсер RSS лент"""
@@ -29,6 +31,10 @@ class RSSParser:
         """
         try:
             logger.info(f"Парсинг RSS ленты: {url}")
+
+            if not is_safe_public_url(url):
+                logger.warning(f"Небезопасный URL RSS отклонён (SSRF guard): {url}")
+                return []
             
             feed = feedparser.parse(url)
             
