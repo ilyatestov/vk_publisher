@@ -78,6 +78,7 @@ python src/web_ui.py
 - [Настройка VK API и Telegram](docs/VK_API_SETUP.md)
 - [Web UI: запуск и ограничения](docs/WEB_UI_GUIDE.md)
 - [Структура проекта (подробно)](docs/PROJECT_STRUCTURE.md)
+- [Канонические архитектурные пути](docs/CANONICAL_ARCHITECTURE.md)
 - [Миграция по PHP-библиотеке](docs/MIGRATION.md)
 - [Рекомендации и улучшения](RECOMMENDATIONS.md)
 

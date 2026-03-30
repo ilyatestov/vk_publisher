@@ -9,7 +9,8 @@
 """
 import asyncio
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Set
+import hashlib
 
 from ..core.logging import log
 from ..core.config import settings
@@ -57,9 +58,75 @@ class PipelineWorker:
         # Аккаунт по умолчанию
         self._default_account = None
 
+        # Ограничение параллелизма модерации
+        self._moderation_semaphore = asyncio.Semaphore(5)
+        self._moderation_tasks: Set[asyncio.Task] = set()
+
+        # Границы адаптивного polling fetcher
+        self._fetcher_sleep_min = 10
+        self._fetcher_sleep_max = max(settings.scheduler.post_interval_minutes * 60, 30)
+
     def set_default_account(self, account):
         """Устанавливает аккаунт по умолчанию для публикации"""
         self._default_account = account
+
+    def _compute_fetcher_sleep_seconds(self) -> int:
+        """Адаптивный интервал опроса на основе backlog очередей."""
+        base = settings.scheduler.post_interval_minutes * 60
+        backlog = (
+            self.processor_queue.qsize()
+            + self.moderation_queue.qsize()
+            + self.publisher_queue.qsize()
+        )
+
+        if backlog > 100:
+            return min(self._fetcher_sleep_max, max(base * 3, self._fetcher_sleep_min))
+        if backlog > 50:
+            return min(self._fetcher_sleep_max, max(base * 2, self._fetcher_sleep_min))
+        if backlog > 20:
+            return min(self._fetcher_sleep_max, max(int(base * 1.5), self._fetcher_sleep_min))
+
+        return max(self._fetcher_sleep_min, min(base, self._fetcher_sleep_max))
+
+    @staticmethod
+    def _build_idempotency_key(post: SocialPost) -> str:
+        """Строит idempotency key для публикации поста."""
+        scheduled = post.scheduled_at.isoformat() if post.scheduled_at else ""
+        raw = f"{post.title}|{post.content}|{post.source_url or ''}|{scheduled}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    async def _handle_moderation(self, post):
+        """Обработка модерации одного поста в отдельной задаче."""
+        async with self._moderation_semaphore:
+            if self._stop_event.is_set():
+                return
+
+            try:
+                if self.moderator:
+                    moderation_id = await self.moderator.send_for_moderation(post)
+                    decision = await self.moderator.wait_for_decision(
+                        moderation_id,
+                        timeout_seconds=300
+                    )
+
+                    if decision and decision.value == 'approved':
+                        post.status = PostStatus.MODERATED
+                        log.info(f"Пост {post.id} одобрен модератором")
+                    else:
+                        post.status = PostStatus.REJECTED
+                        log.info(f"Пост {post.id} отклонен модератором")
+                        await self.storage.save_post(post)
+                        return
+                else:
+                    post.status = PostStatus.MODERATED
+                    log.warning(f"Модератор не настроен, пост {post.id} одобрен автоматически")
+
+                await self.storage.save_post(post)
+                await self.publisher_queue.put(post)
+            except Exception as e:
+                log.error(f"Ошибка в задаче модерации поста {getattr(post, 'id', 'unknown')}: {e}")
+                post.status = PostStatus.FAILED
+                await self.storage.save_post(post)
 
     async def fetcher_worker(self):
         """
@@ -99,8 +166,9 @@ class PipelineWorker:
                     await self.processor_queue.put(saved_post)
                     log.debug(f"Пост {saved_post.id} добавлен в очередь processor")
 
-                # Пауза между итерациями
-                await asyncio.sleep(settings.scheduler.post_interval_minutes * 60)
+                sleep_seconds = self._compute_fetcher_sleep_seconds()
+                log.debug(f"Fetcher sleep: {sleep_seconds}s")
+                await asyncio.sleep(sleep_seconds)
 
             except asyncio.CancelledError:
                 log.info("Fetcher worker остановлен")
@@ -159,7 +227,8 @@ class PipelineWorker:
         """
         Воркер для модерации постов
         
-        Отправляет посты в Telegram бота и ждет решения
+        Отправляет посты в Telegram бота неблокирующе:
+        каждый пост обрабатывается в отдельной ограниченной задаче.
         """
         log.info("Moderation worker запущен")
         
@@ -172,33 +241,9 @@ class PipelineWorker:
                 
                 log.info(f"Модерация поста {post.id}...")
 
-                if self.moderator:
-                    # Отправляем на модерацию
-                    moderation_id = await self.moderator.send_for_moderation(post)
-                    
-                    # Ждем решения (с таймаутом)
-                    decision = await self.moderator.wait_for_decision(
-                        moderation_id,
-                        timeout_seconds=300  # 5 минут
-                    )
-                    
-                    if decision and decision.value == 'approved':
-                        post.status = PostStatus.MODERATED
-                        log.info(f"Пост {post.id} одобрен модератором")
-                    else:
-                        post.status = PostStatus.REJECTED
-                        log.info(f"Пост {post.id} отклонен модератором")
-                        self.moderation_queue.task_done()
-                        continue
-                else:
-                    # Если модератор не настроен, одобряем автоматически
-                    post.status = PostStatus.MODERATED
-                    log.warning(f"Модератор не настроен, пост {post.id} одобрен автоматически")
-
-                await self.storage.save_post(post)
-
-                # Добавляем в очередь публикации
-                await self.publisher_queue.put(post)
+                task = asyncio.create_task(self._handle_moderation(post), name=f"moderation-{post.id}")
+                self._moderation_tasks.add(task)
+                task.add_done_callback(self._moderation_tasks.discard)
 
                 self.moderation_queue.task_done()
 
@@ -209,9 +254,6 @@ class PipelineWorker:
                 break
             except Exception as e:
                 log.error(f"Ошибка в moderation worker: {e}")
-                if 'post' in locals():
-                    post.status = PostStatus.FAILED
-                    await self.storage.save_post(post)
                 await asyncio.sleep(5)
 
     async def publisher_worker(self):
@@ -240,6 +282,16 @@ class PipelineWorker:
                     continue
 
                 if self.publisher and self._default_account:
+                    idempotency_key = self._build_idempotency_key(post)
+                    if hasattr(self.storage, "is_publication_key_used"):
+                        already_published = await self.storage.is_publication_key_used(idempotency_key)
+                        if already_published:
+                            log.warning(f"Пропуск повторной публикации поста {post.id} по idempotency key")
+                            post.status = PostStatus.PUBLISHED
+                            await self.storage.save_post(post)
+                            self.publisher_queue.task_done()
+                            continue
+
                     # Публикуем пост
                     success = await self.publisher.publish_post(
                         post,
@@ -252,6 +304,12 @@ class PipelineWorker:
                         
                         # Увеличиваем счетчик постов
                         self._default_account.increment_post_count()
+
+                        if hasattr(self.storage, "register_publication_key"):
+                            await self.storage.register_publication_key(
+                                idempotency_key=idempotency_key,
+                                text=post.content,
+                            )
                     else:
                         post.status = PostStatus.FAILED
                         log.error(f"Ошибка публикации поста {post.id}")
@@ -306,5 +364,8 @@ class PipelineWorker:
             self.publisher_queue.join(),
             return_exceptions=True
         )
+
+        if self._moderation_tasks:
+            await asyncio.gather(*self._moderation_tasks, return_exceptions=True)
         
         log.info("Конвейер остановлен")
