@@ -59,12 +59,15 @@ app.include_router(config_router)
 
 def main():
     """Точка входа для запуска через uvicorn"""
+    import os
     import uvicorn
 
+    # nosec B104 - binding настраивается через переменную окружения API_HOST
+    # по умолчанию 0.0.0.0 для работы в Docker контейнерах
     uvicorn.run(
         "src.main:app",
-        host="0.0.0.0",
-        port=8000,
+        host=os.getenv("API_HOST", "0.0.0.0"),  # nosec B104
+        port=int(os.getenv("API_PORT", "8000")),
         reload=False,
         log_level="info",
     )
