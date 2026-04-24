@@ -25,15 +25,15 @@ def mask_sensitive_data(message: str) -> str:
         return message
     
     # Маскировка токенов VK (access_token=...)
-    token_pattern = r'access_token=[\w\d]+'
+    token_pattern = r'access_token=[\w\d]+'  # nosec B105 - используется для маскировки, не для хранения
     message = re.sub(token_pattern, 'access_token=***', message)
     
     # Маскировка URL с токенами
-    url_token_pattern = r'(https?://\S*token=\w+)'
+    url_token_pattern = r'(https?://\S*token=\w+)'  # nosec B105 - используется для маскировки
     message = re.sub(url_token_pattern, lambda m: m.group(1)[:30] + '***', message)
     
     # Маскировка Telegram токенов
-    tg_token_pattern = r'[0-9]+:[A-Za-z0-9_-]{35}'
+    tg_token_pattern = r'[0-9]+:[A-Za-z0-9_-]{35}'  # nosec B105 - используется для маскировки
     message = re.sub(tg_token_pattern, '***', message)
     
     # Маскировка ключей шифрования

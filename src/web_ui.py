@@ -268,9 +268,12 @@ def create_ui():
 
 if __name__ == "__main__":
     demo = create_ui()
+    import os
+    # nosec B104 - binding настраивается через переменную окружения WEB_UI_HOST
+    # по умолчанию 127.0.0.1 для безопасности
     demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
+        server_name=os.getenv("WEB_UI_HOST", "127.0.0.1"),  # nosec B104
+        server_port=int(os.getenv("WEB_UI_PORT", "7860")),
         share=False,
         show_error=True
     )
