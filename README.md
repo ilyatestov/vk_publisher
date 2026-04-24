@@ -78,6 +78,9 @@ python -m venv .venv
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# (Опционально) Web UI на Gradio
+pip install -r requirements-ui.txt
 ```
 
 ### 4. Настройка окружения
@@ -613,3 +616,10 @@ pip-audit
 ---
 
 *Последнее обновление: 2026-04-24*
+
+
+## 🧭 Blueprint для полной документации
+
+Для целевой структуры README (с локальным запуском, Docker Compose, TaskIQ worker, Ollama и релизами под Windows/Linux) используйте шаблон: [`docs/README_BLUEPRINT.md`](docs/README_BLUEPRINT.md).
+
+Также общий план модернизации вынесен в [`docs/ARCHITECTURE_MODERNIZATION_PLAN.md`](docs/ARCHITECTURE_MODERNIZATION_PLAN.md).
