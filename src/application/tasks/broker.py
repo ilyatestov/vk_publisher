@@ -6,7 +6,7 @@ from taskiq_redis import ListQueueBroker, RedisAsyncResultBackend
 
 from src.core.config import settings
 
-redis_url = settings.redis.url if hasattr(settings, "redis") else "redis://redis:6379/0"
+redis_url = settings.redis.url
 
 broker = ListQueueBroker(url=redis_url).with_result_backend(
     RedisAsyncResultBackend(redis_url)
