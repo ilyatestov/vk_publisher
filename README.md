@@ -78,6 +78,9 @@ python -m venv .venv
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# (Опционально) Web UI на Gradio
+pip install -r requirements-ui.txt
 ```
 
 ### 4. Настройка окружения
