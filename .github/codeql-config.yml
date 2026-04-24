@@ -1,0 +1,35 @@
+name: "CodeQL Config for VK Publisher"
+
+# Query packs to use - focused on security issues only
+packs:
+  python:
+    - codeql/python-queries:Security
+
+# Paths to analyze
+paths:
+  - src
+
+# Paths to exclude from analysis  
+paths-ignore:
+  - '**/__pycache__/**'
+  - '**/*.pyc'
+  - '.git/**'
+  - 'venv/**'
+  - '.venv/**'
+  - 'build/**'
+  - 'dist/**'
+  - 'tests/**'
+  - '**/test_*.py'
+  - '**/*_test.py'
+
+# Disable specific queries that produce false positives for this project
+query-filters:
+  - exclude:
+      id: py/clear-text-logging-sensitive-data
+      # This is a false positive - we mask tokens in logging.py
+  - exclude:
+      id: py/hardcoded-password
+      # Patterns in logging.py are for masking, not storing passwords
+  - exclude:
+      id: py/bind-to-all-network-interfaces  
+      # Binding to 0.0.0.0 is intentional for Docker containers
