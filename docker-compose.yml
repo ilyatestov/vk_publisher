@@ -2,26 +2,43 @@ version: '3.8'
 
 services:
   # ============================================
-  # VK Publisher Application
+  # VK Publisher Application (FastAPI)
   # ============================================
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     ports:
       - "8000:8000"
     environment:
-      - DATABASE__URL=postgresql+asyncpg://postgres:password@db:5432/vk_publisher
+      # Database
+      - DATABASE__URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-password}@db:5432/vk_publisher
+      # VK API
       - VK__ACCESS_TOKEN=${VK_ACCESS_TOKEN}
       - VK__GROUP_ID=${VK_GROUP_ID}
+      - VK__API_VERSION=${VK_API_VERSION:-5.199}
+      # Telegram Bot
       - TELEGRAM__TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM__MODERATOR_CHAT_ID=${ADMIN_TELEGRAM_ID}
+      # Ollama (AI)
       - OLLAMA__BASE_URL=http://ollama:11434
-      - SECURITY__ENCRYPTION_KEY=${ENCRYPTION_KEY:-change_this_key_32_chars!}
+      - OLLAMA__MODEL_NAME=${LLM_MODEL:-llama3.2}
+      # Redis
+      - REDIS__HOST=redis
+      - REDIS__PORT=6379
+      # Security
+      - SECURITY__ENCRYPTION_KEY=${ENCRYPTION_KEY:-change_this_to_32_chars_secret!}
+      - SECURITY__MASK_SENSITIVE_DATA=true
+      # Logging
+      - LOGGING__LEVEL=${LOG_LEVEL:-INFO}
+      - LOGGING__FILE=/app/logs/app.log
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
-      - ./.env:/app/.env:ro
+      - ./config:/app/config:ro
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -30,6 +47,12 @@ services:
     restart: unless-stopped
     networks:
       - vk_publisher_net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # ============================================
   # PostgreSQL Database
@@ -39,7 +62,7 @@ services:
     environment:
       POSTGRES_DB: vk_publisher
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -52,18 +75,18 @@ services:
       - vk_publisher_net
 
   # ============================================
-  # Redis (for caching and queues)
+  # Redis (for caching and task queues)
   # ============================================
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
     restart: unless-stopped
     networks:
       - vk_publisher_net
+    profiles:
+      - with-redis
 
   # ============================================
   # Prometheus (metrics collection)
@@ -85,6 +108,8 @@ services:
     restart: unless-stopped
     networks:
       - vk_publisher_net
+    profiles:
+      - monitoring
 
   # ============================================
   # Grafana (visualization)
@@ -94,16 +119,18 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     restart: unless-stopped
     networks:
       - vk_publisher_net
     depends_on:
       - prometheus
+    profiles:
+      - monitoring
 
   # ============================================
   # Ollama (local LLM server) - Optional
@@ -119,14 +146,29 @@ services:
       - vk_publisher_net
     profiles:
       - with-ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
   prometheus_data:
+    driver: local
   grafana_data:
+    driver: local
   ollama_data:
+    driver: local
 
 networks:
   vk_publisher_net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
