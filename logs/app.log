@@ -88,3 +88,222 @@
 2026-04-23 17:58:25 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
 2026-04-23 17:58:25 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
 2026-04-23 17:58:25 | ERROR | vk_api_client:get_group_info:245 - Ошибка при получении информации о группе: Group info error
+2026-04-24 13:45:11 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
+2026-04-24 13:45:26 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
+2026-04-24 13:45:45 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp1xond3lm.db
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpc_mpveai.db
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpk5m79t4p.db
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpt200gtfn.db
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp4757rcrn.db
+2026-04-24 13:45:52 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 12345
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpy1hogtip.db
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp685t15vc.db
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpwcmxkne7.db
+2026-04-24 13:45:52 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 111
+2026-04-24 13:45:52 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp11uw0hn8.db
+2026-04-24 13:45:52 | INFO | database.db:close:50 - Соединение с базой данных закрыто
+2026-04-24 13:45:52 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:45:52 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:45:52 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:45:52 | WARNING | processor.deduplicator:filter_duplicates:44 - У материала нет хеша, пропускаем
+2026-04-24 13:45:52 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:45:52 | INFO | processor.deduplicator:group_similar_articles:91 - Тема 'technology': 2 статей для возможного объединения
+2026-04-24 13:45:52 | INFO | processor.deduplicator:merge_articles:112 - Объединение 2 статей в один пост
+2026-04-24 13:45:52 | ERROR | publisher.footer_generator:_load_social_links:38 - Ошибка при загрузке конфигурации соцсетей: [Errno 2] No such file or directory: '/nonexistent/path.json'
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 12345
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 67890
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Rate limit exceeded
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Temporary error
+2026-04-24 13:45:53 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 11111
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Network error
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Timeout
+2026-04-24 13:45:53 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 22222
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:45:53 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | INFO | vk_api_client:upload_photo:177 - Фото загружено: photo123456_789012
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | ERROR | vk_api_client:upload_photo:182 - Ошибка при загрузке фото: Upload failed
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | INFO | vk_api_client:search_newsfeed:212 - Найдено 2 постов по запросу 'test query'
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | INFO | vk_api_client:search_newsfeed:212 - Найдено 0 постов по запросу 'empty query'
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | ERROR | vk_api_client:search_newsfeed:217 - Ошибка VK API при поиске: [6] Search error
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:45:53 | ERROR | vk_api_client:get_group_info:245 - Ошибка при получении информации о группе: Group info error
+2026-04-24 13:46:04 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp7128zxfl.db
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpticbruck.db
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpr4888v_0.db
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpxjyplmh5.db
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpe6hfmx9_.db
+2026-04-24 13:46:33 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 12345
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpc1f8c3g9.db
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp7ulyes5a.db
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpf1ym9xp0.db
+2026-04-24 13:46:33 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 111
+2026-04-24 13:46:33 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpi1mrpspp.db
+2026-04-24 13:46:33 | INFO | database.db:close:50 - Соединение с базой данных закрыто
+2026-04-24 13:46:33 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:46:33 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:46:33 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:46:33 | WARNING | processor.deduplicator:filter_duplicates:44 - У материала нет хеша, пропускаем
+2026-04-24 13:46:33 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:46:33 | INFO | processor.deduplicator:group_similar_articles:91 - Тема 'technology': 2 статей для возможного объединения
+2026-04-24 13:46:33 | INFO | processor.deduplicator:merge_articles:112 - Объединение 2 статей в один пост
+2026-04-24 13:46:33 | ERROR | publisher.footer_generator:_load_social_links:38 - Ошибка при загрузке конфигурации соцсетей: [Errno 2] No such file or directory: '/nonexistent/path.json'
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 12345
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 67890
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Rate limit exceeded
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Temporary error
+2026-04-24 13:46:33 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 11111
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Network error
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Timeout
+2026-04-24 13:46:33 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 22222
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:46:33 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | INFO | vk_api_client:upload_photo:177 - Фото загружено: photo123456_789012
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | ERROR | vk_api_client:upload_photo:182 - Ошибка при загрузке фото: Upload failed
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:33 | INFO | vk_api_client:search_newsfeed:212 - Найдено 2 постов по запросу 'test query'
+2026-04-24 13:46:33 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:34 | INFO | vk_api_client:search_newsfeed:212 - Найдено 0 постов по запросу 'empty query'
+2026-04-24 13:46:34 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:34 | ERROR | vk_api_client:search_newsfeed:217 - Ошибка VK API при поиске: [6] Search error
+2026-04-24 13:46:34 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:34 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:34 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:46:34 | ERROR | vk_api_client:get_group_info:245 - Ошибка при получении информации о группе: Group info error
+2026-04-24 13:47:15 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
+2026-04-24 13:47:37 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmprupl13p2.db
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpsgoxx40p.db
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpmr1ij7a8.db
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp11g9ok3e.db
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpevyz16oo.db
+2026-04-24 13:47:44 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 12345
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmphkhw8gm0.db
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpp5osqsf_.db
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpb69bc6j_.db
+2026-04-24 13:47:44 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 111
+2026-04-24 13:47:44 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpg96belyv.db
+2026-04-24 13:47:44 | INFO | database.db:close:50 - Соединение с базой данных закрыто
+2026-04-24 13:47:44 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:47:44 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:47:44 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:47:44 | WARNING | processor.deduplicator:filter_duplicates:44 - У материала нет хеша, пропускаем
+2026-04-24 13:47:44 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:47:44 | INFO | processor.deduplicator:group_similar_articles:91 - Тема 'technology': 2 статей для возможного объединения
+2026-04-24 13:47:44 | INFO | processor.deduplicator:merge_articles:112 - Объединение 2 статей в один пост
+2026-04-24 13:47:44 | ERROR | publisher.footer_generator:_load_social_links:38 - Ошибка при загрузке конфигурации соцсетей: [Errno 2] No such file or directory: '/nonexistent/path.json'
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 12345
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 67890
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Rate limit exceeded
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Temporary error
+2026-04-24 13:47:44 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 11111
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Network error
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Timeout
+2026-04-24 13:47:44 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 22222
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:47:44 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | INFO | vk_api_client:upload_photo:177 - Фото загружено: photo123456_789012
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | ERROR | vk_api_client:upload_photo:182 - Ошибка при загрузке фото: Upload failed
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:44 | INFO | vk_api_client:search_newsfeed:212 - Найдено 2 постов по запросу 'test query'
+2026-04-24 13:47:44 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:45 | INFO | vk_api_client:search_newsfeed:212 - Найдено 0 постов по запросу 'empty query'
+2026-04-24 13:47:45 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:45 | ERROR | vk_api_client:search_newsfeed:217 - Ошибка VK API при поиске: [6] Search error
+2026-04-24 13:47:45 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:45 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:45 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:47:45 | ERROR | vk_api_client:get_group_info:245 - Ошибка при получении информации о группе: Group info error
+2026-04-24 13:49:07 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
+2026-04-24 13:49:15 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpoqg969up.db
+2026-04-24 13:49:15 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp1cinhsa6.db
+2026-04-24 13:49:15 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpi8reygxr.db
+2026-04-24 13:49:16 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpsiux9eug.db
+2026-04-24 13:49:16 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpjxogt9lw.db
+2026-04-24 13:49:16 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 12345
+2026-04-24 13:49:16 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpywx6eyio.db
+2026-04-24 13:49:16 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmpcm_nzsrw.db
+2026-04-24 13:49:16 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp7nxpm902.db
+2026-04-24 13:49:16 | SUCCESS | database.db:add_published_post:202 - Добавлен опубликованный пост: VK ID 111
+2026-04-24 13:49:16 | INFO | database.db:initialize:110 - База данных инициализирована: /tmp/tmp_th52zzj.db
+2026-04-24 13:49:16 | INFO | database.db:close:50 - Соединение с базой данных закрыто
+2026-04-24 13:49:16 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:49:16 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:49:16 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 1 дубликатов из 3 материалов
+2026-04-24 13:49:16 | WARNING | processor.deduplicator:filter_duplicates:44 - У материала нет хеша, пропускаем
+2026-04-24 13:49:16 | INFO | processor.deduplicator:filter_duplicates:65 - Отфильтровано 0 дубликатов из 3 материалов
+2026-04-24 13:49:16 | INFO | processor.deduplicator:group_similar_articles:91 - Тема 'technology': 2 статей для возможного объединения
+2026-04-24 13:49:16 | INFO | processor.deduplicator:merge_articles:112 - Объединение 2 статей в один пост
+2026-04-24 13:49:16 | ERROR | publisher.footer_generator:_load_social_links:38 - Ошибка при загрузке конфигурации соцсетей: [Errno 2] No such file or directory: '/nonexistent/path.json'
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 12345
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 67890
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Rate limit exceeded
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Temporary error
+2026-04-24 13:49:16 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 11111
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Network error
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:146 - Неизвестная ошибка при публикации: Timeout
+2026-04-24 13:49:16 | SUCCESS | vk_api_client:post_to_wall:139 - Пост успешно опубликован. Post ID: 22222
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:49:16 | ERROR | vk_api_client:post_to_wall:143 - Ошибка VK API при публикации: [6] Permanent error
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | INFO | vk_api_client:upload_photo:177 - Фото загружено: photo123456_789012
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | ERROR | vk_api_client:upload_photo:182 - Ошибка при загрузке фото: Upload failed
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | INFO | vk_api_client:search_newsfeed:212 - Найдено 2 постов по запросу 'test query'
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:16 | INFO | vk_api_client:search_newsfeed:212 - Найдено 0 постов по запросу 'empty query'
+2026-04-24 13:49:16 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:17 | ERROR | vk_api_client:search_newsfeed:217 - Ошибка VK API при поиске: [6] Search error
+2026-04-24 13:49:17 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:17 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:17 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
+2026-04-24 13:49:17 | ERROR | vk_api_client:get_group_info:245 - Ошибка при получении информации о группе: Group info error

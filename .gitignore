@@ -1,31 +1,17 @@
 ```
-# Logs and temp files
-*.log
-*.tmp
-*.swp
+# Compiled Python files
+*.pyc
+__pycache__/
 
-# Environment
+# Coverage reports
+.coverage
+
+# Logs
+*.log
+logs/
+
+# Environment files
 .env
 .env.local
 *.env.*
-
-# Dependencies
-.venv/
-venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-
-# Editors
-.vscode/
-.idea/
-
-# Security and performance audit reports
-bandit_report.json
 ```
