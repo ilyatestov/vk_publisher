@@ -1,17 +1,1 @@
-```
-# Compiled Python files
-*.pyc
-__pycache__/
-
-# Coverage reports
-.coverage
-
-# Logs
-*.log
-logs/
-
-# Environment files
-.env
-.env.local
-*.env.*
-```
+(docs/TROUBLESHOOTING.md, README.md, docs/UBUNTU_VPS_INSTALL.md)
