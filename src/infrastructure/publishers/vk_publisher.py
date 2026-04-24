@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
 
 from aiobreaker import CircuitBreaker
 from tenacity import (
@@ -14,7 +13,6 @@ from tenacity import (
 
 from src.domain.entities import ContentSource, SocialPost, VKAccount
 from src.domain.publishers.base import BasePublisher, PublishPayload, PublishResult
-from src.core.exceptions import VKAPIError
 from src.infrastructure.database import DatabaseStorage
 from src.infrastructure.vk_api_client import VKClient
 
@@ -33,7 +31,7 @@ class VKPublisherAdapter(BasePublisher):
         self._vk_client = vk_client
         self._storage = storage
         self._account = account
-        self._breaker = CircuitBreaker(fail_max=5, timeout_duration=timedelta(seconds=30))
+        self._breaker = CircuitBreaker(fail_max=5, timeout_duration=30)
 
     @staticmethod
     def _build_idempotency_key(payload: PublishPayload) -> str:
@@ -65,7 +63,7 @@ class VKPublisherAdapter(BasePublisher):
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(4),
             wait=wait_exponential_jitter(initial=1, max=30),
-            retry=retry_if_exception_type((VKAPIError, RuntimeError)),
+            retry=retry_if_exception_type(Exception),
             reraise=True,
         ):
             with attempt:
