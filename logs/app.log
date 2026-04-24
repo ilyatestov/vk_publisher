@@ -307,3 +307,4 @@
 2026-04-24 13:49:17 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
 2026-04-24 13:49:17 | INFO | vk_api_client:__init__:94 - VK API клиент инициализирован для группы 123456
 2026-04-24 13:49:17 | ERROR | vk_api_client:get_group_info:245 - Ошибка при получении информации о группе: Group info error
+2026-04-24 18:51:23 | INFO | src.core.logging:setup_logger:144 - Логгер настроен
