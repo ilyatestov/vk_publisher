@@ -31,6 +31,8 @@ class VKSettings(BaseSettings):
 
 class OllamaSettings(BaseSettings):
     """Настройки Ollama (ИИ)"""
+    model_config = SettingsConfigDict(extra='ignore', protected_namespaces=('settings_',))
+
     base_url: str = "http://localhost:11434"
     model_name: str = "llama2"
     timeout: int = 60
@@ -45,6 +47,22 @@ class DatabaseSettings(BaseSettings):
     """Настройки базы данных"""
     url: str = "sqlite+aiosqlite:///./data/vk_publisher.db"
     echo: bool = False
+
+
+class RedisSettings(BaseSettings):
+    """Настройки Redis (кэш/очереди)."""
+    model_config = SettingsConfigDict(extra='ignore', populate_by_name=True)
+
+    host: str = Field(default="localhost", validation_alias="REDIS_HOST")
+    port: int = Field(default=6379, validation_alias="REDIS_PORT")
+    db: int = Field(default=0, validation_alias="REDIS_DB")
+    password: Optional[str] = Field(default=None, validation_alias="REDIS_PASSWORD")
+
+    @property
+    def url(self) -> str:
+        if self.password:
+            return f"redis://:{self.password}@{self.host}:{self.port}/{self.db}"
+        return f"redis://{self.host}:{self.port}/{self.db}"
 
 
 class TelegramBotSettings(BaseSettings):
@@ -103,6 +121,7 @@ class Settings(BaseSettings):
     vk: VKSettings = Field(default_factory=VKSettings)
     ollama: OllamaSettings = Field(default_factory=OllamaSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    redis: RedisSettings = Field(default_factory=RedisSettings)
     telegram: TelegramBotSettings = Field(default_factory=TelegramBotSettings)
     scheduler: SchedulerSettings = Field(default_factory=SchedulerSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
