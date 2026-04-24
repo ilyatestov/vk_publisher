@@ -42,13 +42,35 @@ jobs:
       - name: Build binary with PyInstaller (Linux)
         if: runner.os == 'Linux'
         run: |
-          bash scripts/release/build_linux.sh "${GITHUB_REF_NAME}"
+          pyinstaller --noconfirm --onefile --name vk_publisher-linux src/main.py
+          mkdir -p dist/release
+          cp dist/vk_publisher-linux dist/release/
+          cp README.md dist/release/
+          cp .env.example dist/release/.env.example || true
+          cat > dist/release/start.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          "$DIR/vk_publisher-linux"
+          EOF
+          chmod +x dist/release/start.sh
+          tar -czf vk_publisher-${GITHUB_REF_NAME}-linux.tar.gz -C dist/release .
 
       - name: Build binary with PyInstaller (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          ./scripts/release/build_windows.ps1 -Tag "${env:GITHUB_REF_NAME}"
+          pyinstaller --noconfirm --onefile --name vk_publisher-windows src/main.py
+          New-Item -Path dist/release -ItemType Directory -Force | Out-Null
+          Copy-Item dist/vk_publisher-windows.exe dist/release/
+          Copy-Item README.md dist/release/
+          if (Test-Path .env.example) { Copy-Item .env.example dist/release/.env.example }
+          @"
+          @echo off
+          set SCRIPT_DIR=%~dp0
+          "%SCRIPT_DIR%vk_publisher-windows.exe"
+          "@ | Set-Content -Path dist/release/start.bat
+          Compress-Archive -Path dist/release/* -DestinationPath vk_publisher-${env:GITHUB_REF_NAME}-windows.zip
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -56,9 +78,7 @@ jobs:
           name: vk-publisher-${{ runner.os }}
           path: |
             vk_publisher-${{ github.ref_name }}-linux.tar.gz
-            vk_publisher-${{ github.ref_name }}-linux.tar.gz.sha256
             vk_publisher-${{ github.ref_name }}-windows.zip
-            vk_publisher-${{ github.ref_name }}-windows.zip.sha256
           if-no-files-found: ignore
 
   publish:
@@ -79,6 +99,4 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/**/vk_publisher-${{ github.ref_name }}-linux.tar.gz
-            artifacts/**/vk_publisher-${{ github.ref_name }}-linux.tar.gz.sha256
             artifacts/**/vk_publisher-${{ github.ref_name }}-windows.zip
-            artifacts/**/vk_publisher-${{ github.ref_name }}-windows.zip.sha256
