@@ -4,12 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag (example: v2.1.0)"
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -18,8 +12,6 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     strategy:
       fail-fast: false
       matrix:
@@ -50,31 +42,49 @@ jobs:
       - name: Build binary with PyInstaller (Linux)
         if: runner.os == 'Linux'
         run: |
-          bash scripts/release/build_linux.sh "${RELEASE_TAG}"
+          pyinstaller --noconfirm --onefile --name vk_publisher-linux src/main.py
+          mkdir -p dist/release
+          cp dist/vk_publisher-linux dist/release/
+          cp README.md dist/release/
+          cp .env.example dist/release/.env.example || true
+          cat > dist/release/start.sh <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          "$DIR/vk_publisher-linux"
+          EOF
+          chmod +x dist/release/start.sh
+          tar -czf vk_publisher-${GITHUB_REF_NAME}-linux.tar.gz -C dist/release .
 
       - name: Build binary with PyInstaller (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          ./scripts/release/build_windows.ps1 -Tag "${env:RELEASE_TAG}"
+          pyinstaller --noconfirm --onefile --name vk_publisher-windows src/main.py
+          New-Item -Path dist/release -ItemType Directory -Force | Out-Null
+          Copy-Item dist/vk_publisher-windows.exe dist/release/
+          Copy-Item README.md dist/release/
+          if (Test-Path .env.example) { Copy-Item .env.example dist/release/.env.example }
+          @"
+          @echo off
+          set SCRIPT_DIR=%~dp0
+          "%SCRIPT_DIR%vk_publisher-windows.exe"
+          "@ | Set-Content -Path dist/release/start.bat
+          Compress-Archive -Path dist/release/* -DestinationPath vk_publisher-${env:GITHUB_REF_NAME}-windows.zip
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: vk-publisher-${{ runner.os }}
           path: |
-            vk_publisher-${{ env.RELEASE_TAG }}-linux.tar.gz
-            vk_publisher-${{ env.RELEASE_TAG }}-linux.tar.gz.sha256
-            vk_publisher-${{ env.RELEASE_TAG }}-windows.zip
-            vk_publisher-${{ env.RELEASE_TAG }}-windows.zip.sha256
+            vk_publisher-${{ github.ref_name }}-linux.tar.gz
+            vk_publisher-${{ github.ref_name }}-windows.zip
           if-no-files-found: ignore
 
   publish:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: build
-    env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
       - name: Download artifacts
@@ -82,22 +92,11 @@ jobs:
         with:
           path: ./artifacts
 
-      - name: Validate tag format
-        run: |
-          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
-            echo "Invalid tag format: ${RELEASE_TAG}"
-            echo "Expected format: vX.Y.Z (example: v2.1.0)"
-            exit 1
-          fi
-
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          target_commitish: ${{ github.sha }}
+          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            artifacts/**/vk_publisher-${{ env.RELEASE_TAG }}-linux.tar.gz
-            artifacts/**/vk_publisher-${{ env.RELEASE_TAG }}-linux.tar.gz.sha256
-            artifacts/**/vk_publisher-${{ env.RELEASE_TAG }}-windows.zip
-            artifacts/**/vk_publisher-${{ env.RELEASE_TAG }}-windows.zip.sha256
+            artifacts/**/vk_publisher-${{ github.ref_name }}-linux.tar.gz
+            artifacts/**/vk_publisher-${{ github.ref_name }}-windows.zip

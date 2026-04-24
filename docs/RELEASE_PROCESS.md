@@ -21,14 +21,6 @@ After tag push (`v*`) workflow `.github/workflows/release.yml` builds:
 - `vk_publisher-vX.Y.Z-windows.zip`
 - SHA256 checksum files for each archive
 
-### Alternative: Manual release from GitHub UI
-
-If repository automation cannot push tags, run workflow **release** manually:
-
-1. Open **Actions** -> **release** -> **Run workflow**
-2. Provide input `tag` (for example: `v2.1.0`)
-3. Workflow will build artifacts and create/update GitHub Release for this tag.
-
 ## 3. Local build scripts
 
 ### Linux
@@ -56,16 +48,3 @@ sha256sum -c vk_publisher-vX.Y.Z-linux.tar.gz.sha256
 ```powershell
 Get-FileHash -Algorithm SHA256 .\vk_publisher-vX.Y.Z-windows.zip
 ```
-
-## 5. (Optional) Publish Docker image to GitHub Packages (GHCR)
-
-Workflow: `.github/workflows/publish-ghcr.yml`
-
-- trigger by tag push `v*` **or** manual Actions run with input `tag`
-- publishes image to:
-  - `ghcr.io/<owner>/vk_publisher:vX.Y.Z`
-  - `ghcr.io/<owner>/vk_publisher:latest`
-
-When you need this:
-- yes — if you deploy with Docker/Portainer/Kubernetes and want versioned images
-- no — if you only use binary artifacts (`.zip`/`.tar.gz`) or local Python startup
