@@ -623,5 +623,3 @@ pip-audit
 Для целевой структуры README (с локальным запуском, Docker Compose, TaskIQ worker, Ollama и релизами под Windows/Linux) используйте шаблон: [`docs/README_BLUEPRINT.md`](docs/README_BLUEPRINT.md).
 
 Также общий план модернизации вынесен в [`docs/ARCHITECTURE_MODERNIZATION_PLAN.md`](docs/ARCHITECTURE_MODERNIZATION_PLAN.md).
-
-Пошаговый процесс релиза (включая сборку Windows/Linux и проверку checksum) описан в [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md).

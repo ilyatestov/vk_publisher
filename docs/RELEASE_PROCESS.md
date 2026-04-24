@@ -21,14 +21,6 @@ After tag push (`v*`) workflow `.github/workflows/release.yml` builds:
 - `vk_publisher-vX.Y.Z-windows.zip`
 - SHA256 checksum files for each archive
 
-### Alternative: Manual release from GitHub UI
-
-If repository automation cannot push tags, run workflow **release** manually:
-
-1. Open **Actions** -> **release** -> **Run workflow**
-2. Provide input `tag` (for example: `v2.1.0`)
-3. Workflow will build artifacts and create/update GitHub Release for this tag.
-
 ## 3. Local build scripts
 
 ### Linux
