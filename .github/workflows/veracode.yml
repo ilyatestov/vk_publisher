@@ -32,7 +32,7 @@ jobs:
     steps:
 
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it and copies all sources into ZIP file for submitting for analysis. Replace this section with your applications build steps
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         repository: ''
 
@@ -50,7 +50,7 @@ jobs:
       continue-on-error: true
     - name: Convert pipeline scan output to SARIF format
       id: convert
-      uses: veracode/veracode-pipeline-scan-results-to-sarif@ff08ae5b45d5384cb4679932f184c013d34da9be
+      uses: veracode/veracode-pipeline-scan-results-to-sarif@9f783a26bb6ce76b9438a2f145d80c2d2394583d
       with:
         pipeline-results-json: results.json
     - uses: github/codeql-action/upload-sarif@v3
