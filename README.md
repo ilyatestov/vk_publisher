@@ -1,9 +1,11 @@
 # VK Publisher — Автоматизация публикаций ВКонтакте
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Security: pip-audit](https://img.shields.io/badge/security-pip--audit-brightgreen.svg)](https://pypi.org/project/pip-audit/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
 **VK Publisher** — это мощное приложение для автоматизации публикаций контента во ВКонтакте с поддержкой AI-рерайта, модерации через Telegram, планирования постов и мультипостинга в другие соцсети.
 
@@ -13,12 +15,12 @@
 
 - [Возможности](#-возможности)
 - [Быстрый старт](#-быстрый-старт)
-- [Подробная установка](#-подробная-установка)
+- [Установка через Docker (рекомендуется)](#-установка-через-docker-рекомендуется)
+- [Ручная установка](#-ручная-установка)
 - [Настройка окружения](#-настройка-окружения)
+- [Запуск приложения](#-запуск-приложения)
 - [Архитектура проекта](#-архитектура-проекта)
 - [API документация](#-api-документация)
-- [Web UI](#-web-ui)
-- [Docker](#-docker)
 - [Мониторинг](#-мониторинг)
 - [Безопасность](#-безопасность)
 - [Устранение проблем](#-устранение-проблем)
@@ -34,12 +36,12 @@
 | Функция | Описание |
 |---------|----------|
 | 🔄 **Автоматический сбор контента** | Парсинг RSS, веб-страниц, VK-пабликов по расписанию |
-| 🤖 **AI-рерайтинг** | Интеграция с Ollama для уникализации контента |
+| 🤖 **AI-рерайтинг** | Интеграция с Ollama (Llama 3.2) для уникализации контента |
 | ✅ **Модерация** | Подтверждение постов через Telegram-бота перед публикацией |
 | 📅 **Планировщик** | Отложенная публикация с учётом дневных лимитов |
 | 🔁 **Дедупликация** | Защита от дублирования контента (exact + near-duplicate) |
 | 📊 **Мониторинг** | Prometheus + Grafana дашборды |
-| 🌐 **Web UI** | Веб-панель управления через Gradio |
+| 🌐 **Web UI** | Веб-панель управления через Gradio 5.x |
 | 🔗 **Мультипостинг** | Публикация в VK + пересылка в Telegram и другие каналы |
 
 ### Технические преимущества
@@ -49,19 +51,73 @@
 - **Idempotency** — защита от повторной публикации при сбоях
 - **Backpressure** — адаптивная нагрузка при пиковых запросах
 - **SSRF Protection** — защита от атак через внешние URL
+- **Zero known vulnerabilities** — все зависимости обновлены и проверены
 
 ---
 
 ## 🚀 Быстрый старт
 
-### 1. Клонирование репозитория
+### Вариант 1: Установка через Docker (рекомендуется)
+
+```bash
+# Клонирование репозитория
+git clone https://github.com/ilyatestov/vk_publisher.git
+cd vk_publisher
+
+# Копирование конфигурации
+cp .env.example .env
+nano .env  # Заполните токены VK и Telegram
+
+# Запуск всех сервисов
+docker compose up -d
+
+# Проверка логов
+docker compose logs -f app
+```
+
+**Опциональные профили:**
+
+```bash
+# С мониторингом (Prometheus + Grafana)
+docker compose --profile monitoring up -d
+
+# С AI (Ollama для рерайта)
+docker compose --profile with-ollama up -d
+
+# С Redis (для очередей задач)
+docker compose --profile with-redis up -d
+```
+
+**Полезные команды:**
+
+```bash
+# Просмотр статуса
+docker compose ps
+
+# Остановка
+docker compose down
+
+# Пересборка
+docker compose build --no-cache
+
+# Логи
+docker compose logs -f
+```
+
+👉 Подробнее в [Docker Guide](docs/DEPLOYMENT_GUIDE.md)
+
+---
+
+### Вариант 2: Ручная установка
+
+#### 1. Клонирование репозитория
 
 ```bash
 git clone https://github.com/ilyatestov/vk_publisher.git
 cd vk_publisher
 ```
 
-### 2. Создание виртуального окружения
+#### 2. Создание виртуального окружения
 
 ```bash
 # Linux/macOS
@@ -73,11 +129,64 @@ python -m venv .venv
 .venv\Scripts\activate
 ```
 
-### 3. Установка зависимостей
+#### 3. Установка зависимостей
 
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# Опционально: Web UI на Gradio
+pip install -r requirements-ui.txt
+
+# Опционально: инструменты разработки
+pip install -r requirements-dev.txt
+```
+
+#### 4. Настройка окружения
+
+```bash
+cp .env.example .env
+```
+
+Откройте `.env` и заполните обязательные переменные:
+
+```dotenv
+# VK API (получите на https://dev.vk.com/)
+VK_ACCESS_TOKEN=ваш_токен_vk
+VK_GROUP_ID=id_вашей_группы
+
+# Telegram (создайте бота через @BotFather)
+TELEGRAM_BOT_TOKEN=ваш_токен_telegram
+ADMIN_TELEGRAM_ID=ваш_chat_id
+
+# Безопасность (сгенерируйте случайную строку 32+ символов)
+ENCRYPTION_KEY=$(openssl rand -base64 32)
+```
+
+#### 5. Проверка конфигурации
+
+```bash
+python scripts/test_setup.py
+```
+
+#### 6. Запуск приложения
+
+```bash
+# Режим разработки (с автоперезагрузкой)
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Продакшен режим
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+#### 7. Проверка работы
+
+Откройте в браузере:
+- **Главная страница**: http://localhost:8000/
+- **Swagger API**: http://localhost:8000/docs
+- **ReDoc API**: http://localhost:8000/redoc
+- **Health check**: http://localhost:8000/health
+- **Metrics**: http://localhost:8000/metrics
 
 # (Опционально) Web UI на Gradio
 pip install -r requirements-ui.txt
