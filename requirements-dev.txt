@@ -26,4 +26,4 @@ pre-commit>=4.0.0
 # ============================================
 types-requests>=2.33.0.20260408
 types-python-dateutil>=2.9.0
-types-aiofiles>=24.1.0
+types-aiofiles>=25.1.0.20260409
