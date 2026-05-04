@@ -75,7 +75,7 @@ dependencies = [
     "typing-extensions==4.15.0",
     
     # WEB UI (GRADIO)
-    "gradio==6.13.0",
+    "gradio==6.14.0",
     "pillow>=10.4.0,<13",
     
     # LEGACY VK API
@@ -104,7 +104,7 @@ dev = [
 ]
 
 ui = [
-    "gradio==6.13.0",
+    "gradio==6.14.0",
     "streamlit>=1.30.0",
 ]
 
