@@ -39,8 +39,8 @@ classifiers = [
 dependencies = [
     # CORE
     "python-dotenv>=1.1.0",
-    "pydantic==2.13.3",
-    "pydantic-settings==2.14.0",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.1",
     "loguru==0.7.3",
     
     # ASYNC HTTP & NETWORKING
@@ -55,7 +55,7 @@ dependencies = [
     "alembic==1.18.4",
     
     # TELEGRAM BOT
-    "aiogram==3.27.0",
+    "aiogram==3.28.2",
     "aiofiles==25.1.0",
     
     # WEB FRAMEWORK (FASTAPI)
@@ -75,7 +75,7 @@ dependencies = [
     "typing-extensions==4.15.0",
     
     # WEB UI (GRADIO)
-    "gradio==6.13.0",
+    "gradio==6.14.0",
     "pillow>=10.4.0,<13",
     
     # LEGACY VK API
@@ -84,7 +84,7 @@ dependencies = [
     "fake-useragent==2.2.0",
     
     # BACKGROUND TASKS / RESILIENCE
-    "taskiq==0.12.2",
+    "taskiq==0.12.4",
     "taskiq-redis==1.2.2",
     "aiobreaker==1.2.0",
     "httpx==0.28.1",
@@ -104,7 +104,7 @@ dev = [
 ]
 
 ui = [
-    "gradio==6.13.0",
+    "gradio==6.14.0",
     "streamlit>=1.30.0",
 ]
 
