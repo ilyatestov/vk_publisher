@@ -40,7 +40,7 @@ dependencies = [
     # CORE
     "python-dotenv>=1.1.0",
     "pydantic==2.13.4",
-    "pydantic-settings==2.14.1",
+    "pydantic-settings==2.14.2",
     "loguru==0.7.3",
     
     # ASYNC HTTP & NETWORKING
@@ -49,18 +49,18 @@ dependencies = [
     "yarl==1.24.2",
     
     # DATABASE (ASYNC)
-    "SQLAlchemy==2.0.50",
+    "SQLAlchemy==2.0.51",
     "aiosqlite==0.22.1",
     "asyncpg==0.31.0",
-    "alembic==1.18.4",
+    "alembic==1.18.5",
     
     # TELEGRAM BOT
-    "aiogram==3.28.2",
+    "aiogram==3.29.1",
     "aiofiles==25.1.0",
     
     # WEB FRAMEWORK (FASTAPI)
-    "fastapi==0.136.3",
-    "uvicorn==0.49.0",
+    "fastapi==0.139.0",
+    "uvicorn==0.50.0",
     "prometheus-fastapi-instrumentator==7.1.0",
     "prometheus-client==0.25.0",
     
@@ -72,10 +72,10 @@ dependencies = [
     # UTILITIES
     "python-dateutil==2.9.0.post0",
     "cryptography>=46.0.7",
-    "typing-extensions==4.15.0",
+    "typing-extensions==4.16.0",
     
     # WEB UI (GRADIO)
-    "gradio==6.17.3",
+    "gradio==6.19.0",
     "pillow>=10.4.0,<13",
     
     # LEGACY VK API
@@ -85,7 +85,7 @@ dependencies = [
     
     # BACKGROUND TASKS / RESILIENCE
     "taskiq==0.12.4",
-    "taskiq-redis==1.2.2",
+    "taskiq-redis==1.2.3",
     "aiobreaker==1.2.0",
     "httpx==0.28.1",
 ]
@@ -104,7 +104,7 @@ dev = [
 ]
 
 ui = [
-    "gradio==6.17.3",
+    "gradio==6.19.0",
     "streamlit>=1.30.0",
 ]
 
