@@ -1,41 +1,39 @@
+"""Асинхронный слой работы с базой данных на SQLAlchemy
 """
-Асинхронный слой работы с базой данных на SQLAlchemy
-"""
-from typing import List, Optional, Dict, Any
-from datetime import datetime
-from sqlalchemy.ext.asyncio import (
-    create_async_engine,
-    AsyncSession,
-    async_sessionmaker,
-    AsyncEngine
-)
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum as SQLEnum, Boolean, ForeignKey, select, func
-from sqlalchemy.sql import functions
+import json
+from datetime import UTC, datetime
+from typing import Any
 
-from ..core.logging import log
+from sqlalchemy import DateTime, Integer, String, Text, func, select
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 from ..core.config import settings
 from ..core.exceptions import DatabaseError
-from ..domain.entities import SocialPost, PostStatus, ContentSource, VKAccount
+from ..core.logging import log
+from ..domain.entities import ContentSource, PostStatus, SocialPost
 from ..domain.interfaces import StorageInterface
 
 
 class Base(DeclarativeBase):
     """Базовый класс для моделей SQLAlchemy"""
+
     pass
 
 
 class SocialPostModel(Base):
     """Модель поста в базе данных"""
+
     __tablename__ = "social_posts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    source_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
-    image_urls: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)  # JSON string
-    tags: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)  # JSON string
-    scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    image_urls: Mapped[str | None] = mapped_column(String(2000), nullable=True)  # JSON string
+    tags: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # JSON string
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[PostStatus] = mapped_column(
         SQLEnum(PostStatus),
         default=PostStatus.NEW,
@@ -49,16 +47,14 @@ class SocialPostModel(Base):
         DateTime(timezone=True),
         server_default=func.now()
     )
-    updated_at: Mapped[Optional[datetime]] = mapped_column(
+    updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         onupdate=func.now()
     )
-    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON string
 
     def to_entity(self) -> SocialPost:
         """Конвертирует модель в сущность"""
-        import json
-        
         return SocialPost(
             id=self.id,
             title=self.title,
@@ -77,8 +73,6 @@ class SocialPostModel(Base):
     @classmethod
     def from_entity(cls, entity: SocialPost) -> "SocialPostModel":
         """Создает модель из сущности"""
-        import json
-        
         return cls(
             id=entity.id,
             title=entity.title,
@@ -95,6 +89,7 @@ class SocialPostModel(Base):
 
 class ContentHashModel(Base):
     """Модель для хранения хешей контента (дедупликация)"""
+
     __tablename__ = "content_hashes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -106,19 +101,20 @@ class ContentHashModel(Base):
         server_default=func.now(),
         index=True
     )
-    post_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    post_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(50), default='pending')
 
 
 class PublishedPostModel(Base):
     """Модель опубликованных постов"""
+
     __tablename__ = "published_posts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     vk_post_id: Mapped[int] = mapped_column(Integer, nullable=True)
     content_hash: Mapped[str] = mapped_column(String(255), nullable=True)
     text: Mapped[str] = mapped_column(Text, nullable=True)
-    sources: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sources: Mapped[str | None] = mapped_column(Text, nullable=True)
     published_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now()
@@ -129,18 +125,17 @@ class PublishedPostModel(Base):
 
 
 class DatabaseStorage(StorageInterface):
-    """
-    Асинхронное хранилище данных на SQLAlchemy
-    
+    """Асинхронное хранилище данных на SQLAlchemy
+
     Поддерживает:
     - SQLite (aiosqlite) для разработки
     - PostgreSQL (asyncpg) для production
     """
 
-    def __init__(self, db_url: Optional[str] = None):
+    def __init__(self, db_url: str | None = None):
         self.db_url = db_url or settings.database.url
-        self.engine: Optional[AsyncEngine] = None
-        self.SessionLocal: Optional[async_sessionmaker] = None
+        self.engine: AsyncEngine | None = None
+        self.SessionLocal: async_sessionmaker | None = None
 
     async def initialize(self):
         """Инициализирует базу данных и создает таблицы"""
@@ -150,7 +145,7 @@ class DatabaseStorage(StorageInterface):
                 echo=settings.database.echo,
                 future=True
             )
-            
+
             self.SessionLocal = async_sessionmaker(
                 self.engine,
                 class_=AsyncSession,
@@ -162,7 +157,7 @@ class DatabaseStorage(StorageInterface):
                 await conn.run_sync(Base.metadata.create_all)
 
             log.info(f"База данных инициализирована: {self.db_url}")
-            
+
         except Exception as e:
             log.error(f"Ошибка инициализации базы данных: {e}")
             raise DatabaseError(f"Failed to initialize database: {e}")
@@ -183,19 +178,18 @@ class DatabaseStorage(StorageInterface):
                         select(SocialPostModel).where(SocialPostModel.id == post.id)
                     )
                     db_post = result.scalar_one_or_none()
-                    
+
                     if db_post:
                         db_post.title = post.title
                         db_post.content = post.content
                         db_post.source_url = post.source_url
-                        db_post.image_urls = str(post.image_urls) if post.image_urls else None
-                        db_post.tags = str(post.tags) if post.tags else None
+                        db_post.image_urls = json.dumps(post.image_urls) if post.image_urls else None
+                        db_post.tags = json.dumps(post.tags) if post.tags else None
                         db_post.scheduled_at = post.scheduled_at
                         db_post.status = post.status
                         db_post.source_type = post.source_type
-                        db_post.updated_at = datetime.utcnow()
+                        db_post.updated_at = datetime.now(UTC)
                         if post.metadata:
-                            import json
                             db_post.metadata_json = json.dumps(post.metadata)
                     else:
                         raise DatabaseError(f"Post with id {post.id} not found")
@@ -219,12 +213,12 @@ class DatabaseStorage(StorageInterface):
                 log.error(f"Ошибка сохранения поста: {e}")
                 raise DatabaseError(f"Failed to save post: {e}")
 
-    async def get_post(self, post_id: int) -> Optional[SocialPost]:
+    async def get_post(self, post_id: int) -> SocialPost | None:
         """Получает пост по ID"""
         async with self.SessionLocal() as session:
             try:
                 result = await session.get(SocialPostModel, post_id)
-                
+
                 if result:
                     return result.to_entity()
                 return None
@@ -238,7 +232,7 @@ class DatabaseStorage(StorageInterface):
         async with self.SessionLocal() as session:
             try:
                 result = await session.get(SocialPostModel, post_id)
-                
+
                 if result:
                     result.status = PostStatus(status)
                     result.updated_at = datetime.utcnow()
@@ -252,7 +246,7 @@ class DatabaseStorage(StorageInterface):
                 log.error(f"Ошибка обновления статуса поста: {e}")
                 raise DatabaseError(f"Failed to update post status: {e}")
 
-    async def get_pending_posts(self, limit: int = 100) -> List[SocialPost]:
+    async def get_pending_posts(self, limit: int = 100) -> list[SocialPost]:
         """Получает посты в ожидании обработки"""
         async with self.SessionLocal() as session:
             try:
@@ -265,7 +259,7 @@ class DatabaseStorage(StorageInterface):
                         PostStatus.SCHEDULED
                     ])
                 ).limit(limit)
-                
+
                 result = await session.execute(stmt)
                 db_posts = result.scalars().all()
 
@@ -277,14 +271,14 @@ class DatabaseStorage(StorageInterface):
                 log.error(f"Ошибка получения pending постов: {e}")
                 raise DatabaseError(f"Failed to get pending posts: {e}")
 
-    async def get_posts_by_status(self, status: str, limit: int = 100) -> List[SocialPost]:
+    async def get_posts_by_status(self, status: str, limit: int = 100) -> list[SocialPost]:
         """Получает посты по статусу"""
         async with self.SessionLocal() as session:
             try:
                 stmt = select(SocialPostModel).where(
                     SocialPostModel.status == PostStatus(status)
                 ).limit(limit)
-                
+
                 result = await session.execute(stmt)
                 db_posts = result.scalars().all()
 
@@ -301,7 +295,7 @@ class DatabaseStorage(StorageInterface):
         async with self.SessionLocal() as session:
             try:
                 result = await session.get(SocialPostModel, post_id)
-                
+
                 if result:
                     await session.delete(result)
                     await session.commit()
@@ -319,7 +313,7 @@ class DatabaseStorage(StorageInterface):
         content_hash: str,
         title: str,
         source: str,
-        post_id: Optional[int] = None
+        post_id: int | None = None
     ) -> bool:
         """Добавляет хеш контента в базу"""
         async with self.SessionLocal() as session:
@@ -347,24 +341,24 @@ class DatabaseStorage(StorageInterface):
         async with self.SessionLocal() as session:
             try:
                 from datetime import timedelta
-                
+
                 cutoff_date = datetime.utcnow() - timedelta(days=days)
-                
+
                 stmt = select(ContentHashModel).where(
                     ContentHashModel.hash == content_hash,
                     ContentHashModel.created_at > cutoff_date
                 )
-                
+
                 result = await session.execute(stmt)
                 exists = result.scalar_one_or_none() is not None
-                
+
                 return exists
 
             except Exception as e:
                 log.error(f"Ошибка проверки дубликата: {e}")
                 raise DatabaseError(f"Failed to check duplicate: {e}")
 
-    async def get_statistics(self) -> Dict[str, Any]:
+    async def get_statistics(self) -> dict[str, Any]:
         """Получает статистику по базе данных"""
         async with self.SessionLocal() as session:
             try:
@@ -385,7 +379,7 @@ class DatabaseStorage(StorageInterface):
                 # Количество ошибок за последние 24 часа
                 from datetime import timedelta
                 cutoff_time = datetime.utcnow() - timedelta(hours=24)
-                
+
                 errors_24h_stmt = select(func.count()).select_from(SocialPostModel).where(
                     SocialPostModel.status == PostStatus.FAILED,
                     SocialPostModel.updated_at > cutoff_time
@@ -420,7 +414,7 @@ class DatabaseStorage(StorageInterface):
         self,
         idempotency_key: str,
         text: str,
-        vk_post_id: Optional[int] = None
+        vk_post_id: int | None = None
     ) -> None:
         """Регистрирует успешную публикацию по idempotency key."""
         async with self.SessionLocal() as session:

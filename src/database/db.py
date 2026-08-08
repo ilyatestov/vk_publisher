@@ -1,26 +1,26 @@
-"""
-База данных для хранения постов и проверки дубликатов
+"""База данных для хранения постов и проверки дубликатов
 """
 import asyncio
 import os
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import aiosqlite
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
 from loguru import logger
 
 
 class Database:
     """Класс для работы с SQLite базой данных"""
-    
+
     def __init__(self, db_path: str):
-        """
-        Инициализация базы данных
-        
+        """Инициализация базы данных
+
         Args:
             db_path: Путь к файлу базы данных
+
         """
         self.db_path = db_path
-        self._connection: Optional[aiosqlite.Connection] = None
+        self._connection: aiosqlite.Connection | None = None
         self._connection_lock = asyncio.Lock()
 
     async def _get_connection(self) -> aiosqlite.Connection:
@@ -55,7 +55,7 @@ class Database:
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.close()
-    
+
     async def initialize(self):
         """Инициализация таблиц базы данных"""
         db = await self._get_connection()
@@ -71,7 +71,7 @@ class Database:
                 status TEXT DEFAULT 'pending'
             )
         ''')
-        
+
         # Таблица для опубликованных постов
         await db.execute('''
             CREATE TABLE IF NOT EXISTS published_posts (
@@ -86,7 +86,7 @@ class Database:
                 shares INTEGER DEFAULT 0
             )
         ''')
-        
+
         # Таблица для логов
         await db.execute('''
             CREATE TABLE IF NOT EXISTS logs (
@@ -100,53 +100,53 @@ class Database:
                 error TEXT
             )
         ''')
-        
+
         # Индексы для ускорения поиска
         await db.execute('CREATE INDEX IF NOT EXISTS idx_hash ON content_hashes(hash)')
         await db.execute('CREATE INDEX IF NOT EXISTS idx_created ON content_hashes(created_at)')
         await db.execute('CREATE INDEX IF NOT EXISTS idx_status ON content_hashes(status)')
-        
+
         await db.commit()
         logger.info(f"База данных инициализирована: {self.db_path}")
-    
+
     async def check_duplicate(self, content_hash: str, days: int = 30) -> bool:
-        """
-        Проверка наличия дубликата
-        
+        """Проверка наличия дубликата
+
         Args:
             content_hash: Хеш контента
             days: Период проверки в днях
-            
+
         Returns:
             True если дубликат найден, False иначе
+
         """
         db = await self._get_connection()
         cursor = await db.execute(
             '''
-            SELECT id FROM content_hashes 
+            SELECT id FROM content_hashes
             WHERE hash = ? AND created_at > ?
             ''',
-            (content_hash, datetime.now() - timedelta(days=days))
+            (content_hash, (datetime.now(UTC) - timedelta(days=days)).replace(tzinfo=None).isoformat(sep=" "))
         )
         result = await cursor.fetchone()
         return result is not None
-    
-    async def add_content_hash(self, 
-                               content_hash: str, 
-                               title: str, 
+
+    async def add_content_hash(self,
+                               content_hash: str,
+                               title: str,
                                source: str,
-                               post_id: Optional[int] = None) -> bool:
-        """
-        Добавление хеша контента в базу
-        
+                               post_id: int | None = None) -> bool:
+        """Добавление хеша контента в базу
+
         Args:
             content_hash: Хеш контента
             title: Заголовок
             source: Источник
             post_id: ID поста в VK (опционально)
-            
+
         Returns:
             True если успешно добавлено
+
         """
         try:
             db = await self._get_connection()
@@ -163,20 +163,20 @@ class Database:
         except Exception as e:
             logger.error(f"Ошибка при добавлении хеша: {e}")
             return False
-    
-    async def add_published_post(self, 
+
+    async def add_published_post(self,
                                  vk_post_id: int,
                                  content_hash: str,
                                  text: str,
-                                 sources: List[str]) -> bool:
-        """
-        Добавление информации об опубликованном посте
-        
+                                 sources: list[str]) -> bool:
+        """Добавление информации об опубликованном посте
+
         Args:
             vk_post_id: ID поста в VK
             content_hash: Хеш контента
             text: Текст поста
             sources: Список источников
+
         """
         try:
             db = await self._get_connection()
@@ -187,34 +187,33 @@ class Database:
                 ''',
                 (vk_post_id, content_hash, text, str(sources))
             )
-            
+
             # Обновление статуса хеша
             await db.execute(
                 '''
-                UPDATE content_hashes 
+                UPDATE content_hashes
                 SET status = 'published', post_id = ?
                 WHERE hash = ?
                 ''',
                 (vk_post_id, content_hash)
             )
-            
+
             await db.commit()
             logger.success(f"Добавлен опубликованный пост: VK ID {vk_post_id}")
             return True
         except Exception as e:
             logger.error(f"Ошибка при добавлении опубликованного поста: {e}")
             return False
-    
-    async def add_log(self, 
+
+    async def add_log(self,
                       action: str,
                       source: str,
-                      post_id: Optional[int],
-                      hash: Optional[str],
+                      post_id: int | None,
+                      hash: str | None,
                       status: str,
-                      error: Optional[str] = None) -> bool:
-        """
-        Добавление записи в лог
-        
+                      error: str | None = None) -> bool:
+        """Добавление записи в лог
+
         Args:
             action: Действие (fetch/rewrite/publish/error)
             source: Источник
@@ -222,6 +221,7 @@ class Database:
             hash: Хеш контента
             status: Статус (success/failed/skipped)
             error: Сообщение об ошибке
+
         """
         try:
             db = await self._get_connection()
@@ -237,55 +237,55 @@ class Database:
         except Exception as e:
             logger.error(f"Ошибка при добавлении лога: {e}")
             return False
-    
-    async def get_recent_hashes(self, days: int = 30) -> List[str]:
-        """
-        Получение списка хешей за последние дни
-        
+
+    async def get_recent_hashes(self, days: int = 30) -> list[str]:
+        """Получение списка хешей за последние дни
+
         Args:
             days: Период в днях
-            
+
         Returns:
             Список хешей
+
         """
         db = await self._get_connection()
         cursor = await db.execute(
             '''
-            SELECT hash FROM content_hashes 
+            SELECT hash FROM content_hashes
             WHERE created_at > ?
             ''',
-            (datetime.now() - timedelta(days=days),)
+            ((datetime.now(UTC) - timedelta(days=days)).replace(tzinfo=None).isoformat(sep=" "),)
         )
         results = await cursor.fetchall()
         return [row[0] for row in results]
-    
-    async def get_statistics(self) -> Dict[str, Any]:
-        """
-        Получение статистики по базе данных
-        
+
+    async def get_statistics(self) -> dict[str, Any]:
+        """Получение статистики по базе данных
+
         Returns:
             Словарь со статистикой
+
         """
         db = await self._get_connection()
         # Количество хешей
         cursor = await db.execute('SELECT COUNT(*) FROM content_hashes')
         total_hashes = (await cursor.fetchone())[0]
-        
+
         # Количество опубликованных
         cursor = await db.execute("SELECT COUNT(*) FROM content_hashes WHERE status = 'published'")
         published_count = (await cursor.fetchone())[0]
-        
+
         # Количество постов в таблице published_posts
         cursor = await db.execute('SELECT COUNT(*) FROM published_posts')
         posts_count = (await cursor.fetchone())[0]
-        
+
         # Количество ошибок за последние 24 часа
         cursor = await db.execute(
             "SELECT COUNT(*) FROM logs WHERE status = 'failed' AND timestamp > ?",
-            (datetime.now() - timedelta(hours=24),)
+            ((datetime.now(UTC) - timedelta(hours=24)).replace(tzinfo=None).isoformat(sep=" "),)
         )
         errors_24h = (await cursor.fetchone())[0]
-        
+
         return {
             'total_hashes': total_hashes,
             'published_count': published_count,
