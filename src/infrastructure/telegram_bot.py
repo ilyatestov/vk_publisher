@@ -2,28 +2,27 @@
 Telegram бот на aiogram 3.x для модерации постов
 """
 import asyncio
-from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 try:
-    from aiogram import Bot, Dispatcher, Router, F
-    from aiogram.types import Update, Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-    from aiogram.filters import Command
+    from aiogram import Bot, Dispatcher, F, Router
     from aiogram.fsm.storage.memory import MemoryStorage
+    from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
     AIOMGRAM_AVAILABLE = True
 except ImportError:
     AIOMGRAM_AVAILABLE = False
 
-from ..core.logging import log
 from ..core.config import settings
-from ..domain.entities import SocialPost, ModerationDecision
+from ..core.logging import log
+from ..domain.entities import ModerationDecision, SocialPost
 from ..domain.interfaces import ModerationInterface
 
 
 class TelegramModeratorBot(ModerationInterface):
     """
     Telegram бот для модерации постов на aiogram 3.x
-    
+
     Поддерживает:
     - Отправку постов на модерацию
     - Inline-кнопки для одобрения/отклонения
@@ -32,32 +31,35 @@ class TelegramModeratorBot(ModerationInterface):
     """
 
     def __init__(self):
+        self.bot = None
+        self.dp = None
+        self.router = None
+        self.pending_moderations: dict[str, dict[str, Any]] = {}
+
         if not AIOMGRAM_AVAILABLE:
             log.warning("aiogram не установлен. Модерация через Telegram недоступна.")
-            self.bot = None
-            self.dp = None
-            self.router = None
             return
 
-        self.bot_token = settings.telegram.token
+        self.bot_token = settings.telegram.token.strip()
         self.moderator_chat_id = settings.telegram.moderator_chat_id
-        
-        if not self.bot_token:
+
+        if not self.bot_token or self.bot_token.startswith("your_"):
             log.warning("Telegram токен не настроен. Модерация недоступна.")
+            return
+
+        try:
+            # Инициализация бота и диспетчера
+            storage = MemoryStorage()
+            self.bot = Bot(token=self.bot_token)
+            self.dp = Dispatcher(storage=storage)
+            self.router = Router()
+            self.dp.include_router(self.router)
+        except Exception as exc:
+            log.warning(f"Telegram токен некорректен, модерация недоступна: {exc}")
             self.bot = None
             self.dp = None
             self.router = None
             return
-
-        # Инициализация бота и диспетчера
-        storage = MemoryStorage()
-        self.bot = Bot(token=self.bot_token)
-        self.dp = Dispatcher(storage=storage)
-        self.router = Router()
-        self.dp.include_router(self.router)
-
-        # Хранилище постов на модерации
-        self.pending_moderations: Dict[str, Dict[str, Any]] = {}
 
         # Регистрация хендлеров
         self._register_handlers()
@@ -66,7 +68,7 @@ class TelegramModeratorBot(ModerationInterface):
 
     def _register_handlers(self):
         """Регистрирует обработчики команд и callback"""
-        
+
         @self.router.command_handler("start")
         async def cmd_start(message: Message):
             """Обработчик команды /start"""
@@ -83,11 +85,11 @@ class TelegramModeratorBot(ModerationInterface):
         async def callback_approve(callback: CallbackQuery):
             """Обработчик кнопки одобрения"""
             moderation_id = callback.data.split("_", 1)[1]
-            
+
             if moderation_id in self.pending_moderations:
                 self.pending_moderations[moderation_id]['decision'] = ModerationDecision.APPROVED
-                self.pending_moderations[moderation_id]['decided_at'] = datetime.utcnow()
-                
+                self.pending_moderations[moderation_id]['decided_at'] = datetime.now(UTC)
+
                 await callback.answer("✅ Пост одобрен", show_alert=True)
                 await callback.message.edit_text(
                     f"{callback.message.text}\n\n✅ <b>ОДОБРЕНО</b>",
@@ -101,11 +103,11 @@ class TelegramModeratorBot(ModerationInterface):
         async def callback_reject(callback: CallbackQuery):
             """Обработчик кнопки отклонения"""
             moderation_id = callback.data.split("_", 1)[1]
-            
+
             if moderation_id in self.pending_moderations:
                 self.pending_moderations[moderation_id]['decision'] = ModerationDecision.REJECTED
-                self.pending_moderations[moderation_id]['decided_at'] = datetime.utcnow()
-                
+                self.pending_moderations[moderation_id]['decided_at'] = datetime.now(UTC)
+
                 await callback.answer("❌ Пост отклонён", show_alert=True)
                 await callback.message.edit_text(
                     f"{callback.message.text}\n\n❌ <b>ОТКЛОНЕНО</b>",
@@ -126,22 +128,22 @@ class TelegramModeratorBot(ModerationInterface):
         if self.dp:
             log.info("Остановка Telegram бота...")
             await self.dp.stop_polling(self.bot)
-        
+
         if self.bot:
             await self.bot.session.close()
 
     async def send_for_moderation(self, post: SocialPost) -> str:
         """
         Отправляет пост на модерацию
-        
+
         Args:
             post: Пост для модерации
-            
+
         Returns:
             ID задачи модерации
         """
         import uuid
-        
+
         if not self.bot or not AIOMGRAM_AVAILABLE:
             log.warning("Telegram не настроен, пропускаем модерацию")
             # Создаем фейковый ID и сразу одобряем
@@ -149,8 +151,8 @@ class TelegramModeratorBot(ModerationInterface):
             self.pending_moderations[moderation_id] = {
                 'post': post,
                 'decision': ModerationDecision.APPROVED,
-                'sent_at': datetime.utcnow(),
-                'decided_at': datetime.utcnow()
+                'sent_at': datetime.now(UTC),
+                'decided_at': datetime.now(UTC)
             }
             return moderation_id
 
@@ -160,7 +162,7 @@ class TelegramModeratorBot(ModerationInterface):
         self.pending_moderations[moderation_id] = {
             'post': post,
             'decision': ModerationDecision.PENDING,
-            'sent_at': datetime.utcnow(),
+            'sent_at': datetime.now(UTC),
             'decided_at': None
         }
 
@@ -168,13 +170,13 @@ class TelegramModeratorBot(ModerationInterface):
             # Формирование сообщения
             text = post.content[:3000]  # Обрезаем до 3000 символов
 
-            message = f"🔍 <b>Новый пост на модерацию</b>\n\n"
+            message = "🔍 <b>Новый пост на модерацию</b>\n\n"
             message += f"<b>ID:</b> {moderation_id}\n"
             message += f"<b>Источник:</b> {post.source_type.value}\n"
-            
+
             if post.title:
                 message += f"<b>Заголовок:</b> {post.title}\n"
-            
+
             message += f"\n{text}\n\n"
 
             if post.tags:
@@ -214,19 +216,19 @@ class TelegramModeratorBot(ModerationInterface):
             log.error(f"Ошибка при отправке на модерацию: {e}")
             # При ошибке создаем фейковое одобрение
             self.pending_moderations[moderation_id]['decision'] = ModerationDecision.APPROVED
-            self.pending_moderations[moderation_id]['decided_at'] = datetime.utcnow()
+            self.pending_moderations[moderation_id]['decided_at'] = datetime.now(UTC)
             return moderation_id
 
     async def get_moderation_decision(
         self,
         moderation_id: str
-    ) -> Optional[ModerationDecision]:
+    ) -> ModerationDecision | None:
         """
         Получает решение модератора
-        
+
         Args:
             moderation_id: ID задачи модерации
-            
+
         Returns:
             Решение модератора или None если еще не принято
         """
@@ -234,30 +236,30 @@ class TelegramModeratorBot(ModerationInterface):
             return None
 
         moderation_data = self.pending_moderations[moderation_id]
-        
+
         # Проверяем таймаут (5 минут)
         if moderation_data['decision'] == ModerationDecision.PENDING:
-            elapsed = datetime.utcnow() - moderation_data['sent_at']
+            elapsed = datetime.now(UTC) - moderation_data['sent_at']
             if elapsed > timedelta(minutes=5):
                 log.warning(f"Таймаут модерации для поста {moderation_id}")
                 moderation_data['decision'] = ModerationDecision.REJECTED
-                moderation_data['decided_at'] = datetime.utcnow()
+                moderation_data['decided_at'] = datetime.now(UTC)
 
         return moderation_data['decision']
 
     async def approve_post(self, moderation_id: str) -> bool:
         """
         Одобряет пост
-        
+
         Args:
             moderation_id: ID задачи модерации
-            
+
         Returns:
             True если одобрение успешно
         """
         if moderation_id in self.pending_moderations:
             self.pending_moderations[moderation_id]['decision'] = ModerationDecision.APPROVED
-            self.pending_moderations[moderation_id]['decided_at'] = datetime.utcnow()
+            self.pending_moderations[moderation_id]['decided_at'] = datetime.now(UTC)
             log.info(f"Пост {moderation_id} одобрен программно")
             return True
         return False
@@ -265,17 +267,17 @@ class TelegramModeratorBot(ModerationInterface):
     async def reject_post(self, moderation_id: str, reason: str = "") -> bool:
         """
         Отклоняет пост
-        
+
         Args:
             moderation_id: ID задачи модерации
             reason: Причина отклонения
-            
+
         Returns:
             True если отклонение успешно
         """
         if moderation_id in self.pending_moderations:
             self.pending_moderations[moderation_id]['decision'] = ModerationDecision.REJECTED
-            self.pending_moderations[moderation_id]['decided_at'] = datetime.utcnow()
+            self.pending_moderations[moderation_id]['decided_at'] = datetime.now(UTC)
             if reason:
                 self.pending_moderations[moderation_id]['reason'] = reason
             log.info(f"Пост {moderation_id} отклонен программно: {reason}")
@@ -286,25 +288,25 @@ class TelegramModeratorBot(ModerationInterface):
         self,
         moderation_id: str,
         timeout_seconds: int = 300
-    ) -> Optional[ModerationDecision]:
+    ) -> ModerationDecision | None:
         """
         Ждет решения модератора с таймаутом
-        
+
         Args:
             moderation_id: ID задачи модерации
             timeout_seconds: Максимальное время ожидания
-            
+
         Returns:
             Решение модератора или None при таймауте
         """
-        start_time = datetime.utcnow()
-        
-        while (datetime.utcnow() - start_time).total_seconds() < timeout_seconds:
+        start_time = datetime.now(UTC)
+
+        while (datetime.now(UTC) - start_time).total_seconds() < timeout_seconds:
             decision = await self.get_moderation_decision(moderation_id)
-            
+
             if decision and decision != ModerationDecision.PENDING:
                 return decision
-            
+
             await asyncio.sleep(2)  # Проверяем каждые 2 секунды
 
         # Таймаут
