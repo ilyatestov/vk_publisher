@@ -76,7 +76,7 @@ dependencies = [
     
     # WEB UI (GRADIO)
     "gradio==6.22.0",
-    "pillow>=10.4.0,<13",
+    "pillow>=10.4.0,<14",
     
     # LEGACY VK API
     "vk-api==11.10.1",
